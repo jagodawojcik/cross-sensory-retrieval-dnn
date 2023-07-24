@@ -15,7 +15,7 @@ def prepare_data(embeddings):
     return np.array(data), np.array(labels)
 
    
-def visualize_embeddings(visual_embeddings, tactile_embeddings):
+def visualise_embeddings(visual_embeddings, tactile_embeddings):
     # Prepare the data
     visual_data, visual_labels = prepare_data(visual_embeddings)
     tactile_data, tactile_labels = prepare_data(tactile_embeddings)
@@ -40,4 +40,4 @@ def visualize_embeddings(visual_embeddings, tactile_embeddings):
     plt.show()
 
 if __name__ == "__main__":
-    visualize_embeddings(visual_embeddings, tactile_embeddings)
+    visualise_embeddings(visual_embeddings, tactile_embeddings)
