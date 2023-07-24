@@ -14,7 +14,7 @@ def prepare_data(embeddings):
         labels.extend([label]*len(embedding))
     return np.array(data), np.array(labels)
 
-def plot_embeddings():
+def visualise_embeddings():
     # Prepare the data
     tactile_data, tactile_labels = prepare_data(tactile_embeddings)
     audio_data, audio_labels = prepare_data(audio_embeddings)
@@ -39,4 +39,4 @@ def plot_embeddings():
     plt.show()
 
 if __name__ == "__main__":
-    plot_embeddings()
+    visualise_embeddings()

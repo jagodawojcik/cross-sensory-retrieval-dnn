@@ -15,12 +15,7 @@ class ResnetBranch(nn.Module):
     def __init__(self, pre_trained=True, hidden_dim=2048, output_dim=200):
         super(ResnetBranch, self).__init__()
         self.base_model = models.resnet50(pretrained=pre_trained)
-        self.base_model.conv1 = nn.Conv2d(3, 64, kernel_size=(7, 7), stride=(2, 2), padding=(3, 3))
-
-        # Enable gradient updates for all layers
-        for param in self.base_model.parameters():
-            param.requires_grad = True
-
+    
         num_features = self.base_model.fc.in_features
         self.base_model.fc = nn.Identity()  # remove the final fully connected layer
         self.fc = nn.Linear(num_features, output_dim)  # new fc layer for embeddings
@@ -54,17 +49,16 @@ class AudioBranch(nn.Module):
 class CrossSensoryNetwork(nn.Module):
     def __init__(self, pre_trained=True, hidden_dim=2048, output_dim=200):
         super(CrossSensoryNetwork, self).__init__()
-        self.visual_branch = ResnetBranch(pre_trained, hidden_dim, output_dim)
+        self.tactile_branch = ResnetBranch(pre_trained, hidden_dim, output_dim)
         self.audio_branch = AudioBranch(hidden_dim, output_dim)
         self.joint_fc = nn.Linear(output_dim * 2, NUM_CLASSES)  # to get the joint embeddings
-  
 
-    def forward(self, audio_input, visual_input):
-        visual_output = self.visual_branch(visual_input)
+    def forward(self, audio_input, tactile_input):
+        tactile_output = self.tactile_branch(tactile_input)
         audio_output = self.audio_branch(audio_input)
-        joint_input = torch.cat((visual_output, audio_output), dim=1)
+        joint_input = torch.cat((tactile_output, audio_output), dim=1)
         joint_embeddings = self.joint_fc(joint_input)
-        return audio_output, visual_output, joint_embeddings
+        return audio_output, tactile_output, joint_embeddings
 
 """Triplet Loss Network"""
 class EmbeddingNet(nn.Module):
@@ -92,7 +86,6 @@ class TripletLoss(nn.Module):
     Triplet loss
     Takes embeddings of an anchor sample, a positive sample and a negative sample
     """
-
     def __init__(self, margin):
         super(TripletLoss, self).__init__()
         self.margin = margin
