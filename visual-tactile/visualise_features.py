@@ -21,7 +21,7 @@ def visualise_embeddings(visual_embeddings, tactile_embeddings):
     tactile_data, tactile_labels = prepare_data(tactile_embeddings)
 
     # Perform t-SNE
-    tsne = TSNE(n_components=2, random_state=0)
+    tsne = TSNE(n_components=2,random_state=0) # Use random_state to get consistent results
     visual_data_2d = tsne.fit_transform(visual_data)
     tactile_data_2d = tsne.fit_transform(tactile_data)
 

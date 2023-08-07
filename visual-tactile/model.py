@@ -91,7 +91,7 @@ class TripletDataset(Dataset):
         return len(self.labels)
 
     def __getitem__(self, idx):
-        label = self.labels[idx]
+        label = self.labels[idx] # get the label of the idx-th sample
         positive_source = random.choice(['visual', 'tactile'])
 
         if positive_source == 'visual':

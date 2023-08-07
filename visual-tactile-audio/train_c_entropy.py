@@ -1,34 +1,22 @@
-from model import ResnetBranch, CrossSensoryNetwork
-from load_data import get_loader
-from evaluation import evaluate
-
-import torch
-from torch import nn
 from collections import defaultdict
 import matplotlib.pyplot as plt
 import numpy as np
-
-NUM_CLASSES = 20
+import torch
+import torch.nn as nn
+from torch.utils.data import DataLoader
+from torchvision import transforms
+from model import TactileNetwork, CrossSensoryNetwork
+from load_data import get_loader
 
 EPOCHS_PRETRAIN = 15
-EPOCHS_C_ENTROPY = 45
+EPOCHS_C_ENTROPY = 50
 BATCH_SIZE = 5
 
-class TactileNetwork(nn.Module):
-    def __init__(self, pre_trained=True, hidden_dim=2048, output_dim=200):
-        super(TactileNetwork, self).__init__()
-        self.tactile_branch = ResnetBranch(pre_trained, hidden_dim, output_dim)
-        self.fc = nn.Linear(output_dim, NUM_CLASSES)  # final fc layer for classification
+def train_with_cross_entropy(epochs_pre = EPOCHS_PRETRAIN, epochs_cross_entropy=EPOCHS_C_ENTROPY, batch_size=BATCH_SIZE):
 
-    def forward(self, tactile_input):
-        tactile_output = self.tactile_branch(tactile_input)
-        outputs = self.fc(tactile_output)
-        return outputs
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-
-def train_c_entropy_pretrain(epochs_pretrain = EPOCHS_PRETRAIN, epochs=EPOCHS_C_ENTROPY, batch_size=BATCH_SIZE):
-    # Initialize Tactile Network
+    # Initialize your Tactile Network
     tactile_network = TactileNetwork().to(device)
 
     # Initialize your optimizer and loss function for the pretraining
@@ -53,7 +41,7 @@ def train_c_entropy_pretrain(epochs_pretrain = EPOCHS_PRETRAIN, epochs=EPOCHS_C_
         tactile_network.train()  # set network to training mode
         total_loss = 0
 
-        for i, (_, tactile_input, targets) in enumerate(train_loader):
+        for i, (_, tactile_input, _, targets) in enumerate(train_loader):
             tactile_input, targets = tactile_input.to(device), targets.to(device)
 
             pretrain_optimizer.zero_grad()
@@ -84,7 +72,7 @@ def train_c_entropy_pretrain(epochs_pretrain = EPOCHS_PRETRAIN, epochs=EPOCHS_C_
         tactile_network.eval()  # set network to evaluation mode
         total_test_loss = 0
         with torch.no_grad():
-            for i, (_, tactile_input, targets) in enumerate(test_loader):
+            for i, (_, tactile_input, _, targets) in enumerate(test_loader):
                 tactile_input, targets = tactile_input.to(device), targets.to(device)
                 tactile_output = tactile_network.tactile_branch(tactile_input)
                 outputs = tactile_network.fc(tactile_output)
@@ -133,15 +121,16 @@ def train_c_entropy_pretrain(epochs_pretrain = EPOCHS_PRETRAIN, epochs=EPOCHS_C_
         # Initialize embeddings storage for each epoch
         audio_embeddings_train = defaultdict(list)
         tactile_embeddings_train = defaultdict(list)
+        visual_embeddings_train = defaultdict(list)
 
         # Training phase
-        for i, (audio_input, tactile_input, targets) in enumerate(train_loader):
-            audio_input, tactile_input, targets = audio_input.to(device), tactile_input.to(device), targets.to(device)
+        for i, (audio_input, tactile_input, visual_input, targets) in enumerate(train_loader):
+            audio_input, tactile_input, visual_input, targets = audio_input.to(device), tactile_input.to(device), visual_input.to(device), targets.to(device)
 
             optimizer.zero_grad()
 
             # Get outputs and embeddings
-            audio_output, tactile_output, joint_embeddings = network(audio_input, tactile_input)
+            audio_output, tactile_output, visual_output, joint_embeddings = network(audio_input, tactile_input, visual_input)
 
             # Compute the loss
             loss = criterion(joint_embeddings, targets)
@@ -156,7 +145,8 @@ def train_c_entropy_pretrain(epochs_pretrain = EPOCHS_PRETRAIN, epochs=EPOCHS_C_
                 label = targets[j].item()
                 audio_embeddings_train[label].append(audio_output[j].detach().cpu().numpy())
                 tactile_embeddings_train[label].append(tactile_output[j].detach().cpu().numpy())
-
+                visual_embeddings_train[label].append(visual_output[j].detach().cpu().numpy())
+        
         epoch_train_loss = total_train_loss / len(train_loader)
         train_losses.append(epoch_train_loss)  # Append training loss for current epoch
 
@@ -164,13 +154,15 @@ def train_c_entropy_pretrain(epochs_pretrain = EPOCHS_PRETRAIN, epochs=EPOCHS_C_
         network.eval()  # set network to evaluation mode
         audio_embeddings_test = defaultdict(list)
         tactile_embeddings_test = defaultdict(list)
+        visual_embeddings_test = defaultdict(list)
+        
         total_test_loss = 0
         with torch.no_grad():
-            for i, (audio_input, tactile_input, targets) in enumerate(test_loader):
-                audio_input, tactile_input, targets = audio_input.to(device), tactile_input.to(device), targets.to(device)
+            for i, (audio_input, tactile_input, visual_input, targets) in enumerate(test_loader):
+                audio_input, tactile_input, visual_input, targets = audio_input.to(device), tactile_input.to(device), visual_input.to(device), targets.to(device)
 
                 # Get outputs and embeddings
-                audio_output, tactile_output, joint_embeddings = network(audio_input, tactile_input)
+                audio_output, tactile_output, visual_output, joint_embeddings = network(audio_input, tactile_input, visual_input)
 
                 # Compute the loss
                 loss = criterion(joint_embeddings, targets)
@@ -181,7 +173,8 @@ def train_c_entropy_pretrain(epochs_pretrain = EPOCHS_PRETRAIN, epochs=EPOCHS_C_
                     label = targets[j].item()
                     audio_embeddings_test[label].append(audio_output[j].detach().cpu().numpy())
                     tactile_embeddings_test[label].append(tactile_output[j].detach().cpu().numpy())
-
+                    visual_embeddings_test[label].append(visual_output[j].detach().cpu().numpy())
+        
         test_loss = total_test_loss / len(test_loader)
         test_losses.append(test_loss)  # Append test loss for current epoch
         print(f'Epoch {epoch}, Train Loss: {epoch_train_loss}, Test Loss: {test_loss}')
@@ -190,11 +183,13 @@ def train_c_entropy_pretrain(epochs_pretrain = EPOCHS_PRETRAIN, epochs=EPOCHS_C_
     print("Training completed. Saving embeddings...")
     np.save('audio_embeddings_kaggle_train.npy', dict(audio_embeddings_train))
     np.save('tactile_embeddings_kaggle_train.npy', dict(tactile_embeddings_train))
+    np.save('visual_embeddings_kaggle_train.npy', dict(visual_embeddings_train))
     np.save('audio_embeddings_kaggle_test.npy', dict(audio_embeddings_test))
     np.save('tactile_embeddings_kaggle_test.npy', dict(tactile_embeddings_test))
+    np.save('visual_embeddings_kaggle_test.npy', dict(visual_embeddings_test))
 
     # Save the trained model
-    torch.save(network.state_dict(), 'audio-tactile-model-7.pth')
+    torch.save(network.state_dict(), 'audio-tactile-visual-model.pth')
 
     # After training, plot the losses
     plt.figure(figsize=(10,5))
@@ -210,6 +205,3 @@ def train_c_entropy_pretrain(epochs_pretrain = EPOCHS_PRETRAIN, epochs=EPOCHS_C_
 
     # Display the plot
     plt.show()
-
-if __name__ == "__main__":
-    train_c_entropy_pretrain()

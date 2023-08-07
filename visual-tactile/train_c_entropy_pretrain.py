@@ -59,10 +59,6 @@ def c_entropy_train_with_tactile_pretrain(epochs_pretrain=EPOCHS_PRETRAIN, epoch
 
         # Training loop
         for i, (_, tactile_input, targets) in enumerate(train_loader):
-                tactile_network.train()  # set network to training mode
-        total_loss = 0
-
-        for i, (_, tactile_input, targets) in enumerate(train_loader):
             tactile_input, targets = tactile_input.to(device), targets.to(device)
 
             pretrain_optimizer.zero_grad()
