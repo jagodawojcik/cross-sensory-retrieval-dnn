@@ -1,9 +1,13 @@
+import pathlib
 from torch.utils.data.dataset import Dataset
 from torch.utils.data import DataLoader
 from torchvision import transforms
 import os
 from PIL import Image
 from sklearn.preprocessing import LabelEncoder
+
+CURRENT_DIRECTORY = pathlib.Path(__file__).parent.resolve()
+DATASET_DIRECTORY = os.path.join(CURRENT_DIRECTORY, "..", "..", "data")
 
 ## Data Loader - modify to select the object numbers, labels, and datset directory.
 
@@ -47,7 +51,7 @@ def fetch_data():
                                     normalize])
 
     for object_number in object_numbers:
-        folder_dir = f"../../data/touch/train/{object_number}"
+        folder_dir = f"{DATASET_DIRECTORY}/touch/train/{object_number}"
         for images in os.listdir(folder_dir):
             # check if the image ends with png
             if (images.endswith(".png")):
@@ -59,7 +63,7 @@ def fetch_data():
                 label_train.append(object_number)
 
     for object_number in object_numbers:
-        folder_dir = f"../../data/touch/test/{object_number}"
+        folder_dir = f"{DATASET_DIRECTORY}/touch/test/{object_number}"
 #         count = 0
         for images in os.listdir(folder_dir):
 #             if count >= 20:
@@ -76,7 +80,7 @@ def fetch_data():
 
 
     for object_number in object_numbers:
-        folder_dir = f"../../data/vision/train/{object_number}"
+        folder_dir = f"{DATASET_DIRECTORY}/vision/train/{object_number}"
         for images in os.listdir(folder_dir):
         
             # check if the image ends with png
@@ -91,7 +95,7 @@ def fetch_data():
     
 
     for object_number in object_numbers:
-        folder_dir = f"../../data/vision/test/{object_number}"
+        folder_dir = f"{DATASET_DIRECTORY}/vision/test/{object_number}"
 #         count = 0
         for images in os.listdir(folder_dir):
 #             if count >= 20:  # Stop if 50 images have been loaded for the current object
