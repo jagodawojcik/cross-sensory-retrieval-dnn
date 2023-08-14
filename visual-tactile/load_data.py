@@ -8,6 +8,7 @@ from sklearn.preprocessing import LabelEncoder
 
 CURRENT_DIRECTORY = pathlib.Path(__file__).parent.resolve()
 DATASET_DIRECTORY = os.path.join(CURRENT_DIRECTORY, "..", "..", "data")
+OBJECT_NUMBERS = [1, 2, 3, 4, 13, 17, 18, 25, 29, 30, 33, 49, 50, 66, 67, 68, 71, 83, 89, 100]
 
 ## Data Loader - modify to select the object numbers, labels, and datset directory.
 
@@ -40,7 +41,7 @@ def fetch_data():
     label_test = []
     
     ## Specify the object numbers to be used for training and testing
-    object_numbers = [1, 2, 3, 4, 10, 13, 17, 18, 25, 29, 30, 33, 49, 50, 66, 67, 71, 83, 89, 100]
+    
     # object_numbers = [1, 4, 18, 25, 30, 50, 100]
     # Initialize transforms
     normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
@@ -50,7 +51,7 @@ def fetch_data():
                                     transforms.ToTensor(),
                                     normalize])
 
-    for object_number in object_numbers:
+    for object_number in OBJECT_NUMBERS:
         folder_dir = f"{DATASET_DIRECTORY}/touch/train/{object_number}"
         for images in os.listdir(folder_dir):
             # check if the image ends with png
@@ -62,7 +63,7 @@ def fetch_data():
                 tactile_train.append(img_tensor)
                 label_train.append(object_number)
 
-    for object_number in object_numbers:
+    for object_number in OBJECT_NUMBERS:
         folder_dir = f"{DATASET_DIRECTORY}/touch/test/{object_number}"
 #         count = 0
         for images in os.listdir(folder_dir):
@@ -79,7 +80,7 @@ def fetch_data():
 #                 count += 1
 
 
-    for object_number in object_numbers:
+    for object_number in OBJECT_NUMBERS:
         folder_dir = f"{DATASET_DIRECTORY}/vision/train/{object_number}"
         for images in os.listdir(folder_dir):
         
@@ -94,7 +95,7 @@ def fetch_data():
  
     
 
-    for object_number in object_numbers:
+    for object_number in OBJECT_NUMBERS:
         folder_dir = f"{DATASET_DIRECTORY}/vision/test/{object_number}"
 #         count = 0
         for images in os.listdir(folder_dir):
@@ -116,9 +117,6 @@ def fetch_data():
 def get_loader(batch_size):
     tactile_train, tactile_test, visual_train, visual_test, label_train, label_test = fetch_data()
 
-    ## specify labels depending on number of classes and category labels
-    labels = [1, 2, 3, 4, 10, 13, 17, 18, 25, 29, 30, 33, 49, 50, 66, 67, 71, 83, 89, 100]
-    # labels = [1, 4, 18, 25, 30, 50, 100]
     encoder = LabelEncoder()
     label_train = encoder.fit_transform(label_train)
     label_test = encoder.fit_transform(label_test)
