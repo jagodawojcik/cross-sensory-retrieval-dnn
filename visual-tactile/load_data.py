@@ -36,8 +36,8 @@ def fetch_data():
     label_test = []
     
     ## Specify the object numbers to be used for training and testing
-#     object_numbers = [1, 2, 3, 4, 10, 13, 17, 18, 25, 29, 30, 33, 49, 50, 66, 67, 71, 83, 89, 100]
-    object_numbers = [1, 4, 18, 25, 30, 50, 100]
+    object_numbers = [1, 2, 3, 4, 10, 13, 17, 18, 25, 29, 30, 33, 49, 50, 66, 67, 71, 83, 89, 100]
+    # object_numbers = [1, 4, 18, 25, 30, 50, 100]
     # Initialize transforms
     normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
                                      std=[0.229, 0.224, 0.225])
@@ -47,21 +47,19 @@ def fetch_data():
                                     normalize])
 
     for object_number in object_numbers:
-        folder_dir = f"../input/my-data/tactile/train/{object_number}"
+        folder_dir = f"../../data/tactile/train/{object_number}"
         for images in os.listdir(folder_dir):
             # check if the image ends with png
             if (images.endswith(".png")):
                 # load the image
                 img = Image.open(os.path.join(folder_dir, images))
-                
                 # apply transformations
                 img_tensor = transform(img)
-                
                 tactile_train.append(img_tensor)
                 label_train.append(object_number)
 
     for object_number in object_numbers:
-        folder_dir = f"../input/my-data/tactile/test/{object_number}"
+        folder_dir = f"../../data/touch/test/{object_number}"
 #         count = 0
         for images in os.listdir(folder_dir):
 #             if count >= 20:
@@ -78,7 +76,7 @@ def fetch_data():
 
 
     for object_number in object_numbers:
-        folder_dir = f"../input/my-data/visual/train/{object_number}"
+        folder_dir = f"../../data/vision/train/{object_number}"
         for images in os.listdir(folder_dir):
         
             # check if the image ends with png
@@ -93,7 +91,7 @@ def fetch_data():
     
 
     for object_number in object_numbers:
-        folder_dir = f"../input/my-data/visual/test/{object_number}"
+        folder_dir = f"../../data/vision/test/{object_number}"
 #         count = 0
         for images in os.listdir(folder_dir):
 #             if count >= 20:  # Stop if 50 images have been loaded for the current object
@@ -115,19 +113,13 @@ def get_loader(batch_size):
     tactile_train, tactile_test, visual_train, visual_test, label_train, label_test = fetch_data()
 
     ## specify labels depending on number of classes and category labels
-#     labels = [1, 2, 3, 4, 10, 13, 17, 18, 25, 29, 30, 33, 49, 50, 66, 67, 71, 83, 89, 100]
-    labels = [1, 4, 18, 25, 30, 50, 100]
+    labels = [1, 2, 3, 4, 10, 13, 17, 18, 25, 29, 30, 33, 49, 50, 66, 67, 71, 83, 89, 100]
+    # labels = [1, 4, 18, 25, 30, 50, 100]
     encoder = LabelEncoder()
     label_train = encoder.fit_transform(label_train)
     label_test = encoder.fit_transform(label_test)
     #decode the labels: decoded_labels = encoder.inverse_transform(encoded_labels)
-    
-    ## get one hot labels
-    # label_train, label_test = get_one_hot_labels(labels, label_train, label_test)
-    # label_train = np.stack( label_train, axis=0 )
-    # label_test = np.stack( label_test, axis=0 )
 
-    
     tactile = {'train': tactile_train, 'test': tactile_test}
     visual = {'train': visual_train, 'test': visual_test}
     labels = {'train': label_train, 'test': label_test}
