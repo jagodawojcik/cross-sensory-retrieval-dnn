@@ -15,6 +15,7 @@ from model import CrossSensoryNetwork
 EPOCHS_C_ENTROPY = 80
 BATCH_SIZE = 5
 
+
 ## If training with TPU
 # device = xm.xla_device()
 ## If training with GPU
@@ -30,7 +31,7 @@ def train_with_cross_entropy(epochs_c_entropy=EPOCHS_C_ENTROPY, batch_size=BATCH
     criterion = nn.CrossEntropyLoss()
 
     # Get the dataloaders and parameters - parameters for debug only
-    dataloader, input_data_par = get_loader(BATCH_SIZE)
+    dataloader, input_data_par = get_loader(batch_size)
 
     # Get the train and test loaders
     train_loader = dataloader['train']
@@ -41,7 +42,7 @@ def train_with_cross_entropy(epochs_c_entropy=EPOCHS_C_ENTROPY, batch_size=BATCH
     test_losses = []
 
     # Training loop
-    for epoch in range(EPOCHS_C_ENTROPY):
+    for epoch in range(epochs_c_entropy):
         network.train()  # set network to training mode
         total_train_loss = 0
 
@@ -118,13 +119,25 @@ def train_with_cross_entropy(epochs_c_entropy=EPOCHS_C_ENTROPY, batch_size=BATCH
     torch.save(network.state_dict(), 'visual-tactile-model-20.pth')
 
     # After training, plot the losses
-    plt.figure(figsize=(10,5))
+    plt.figure(figsize=(10, 5))
     plt.plot(train_losses, label='Train Loss')
     plt.plot(test_losses, label='Test Loss')
-    plt.title('Train and Test Loss over time')
-    plt.xlabel('Epochs')
-    plt.ylabel('Loss')
-    plt.legend()
+
+    # Increase title font size
+    plt.title('Train and Test Loss over time', fontsize=18)
+
+    # Increase x and y axis label font size
+    plt.xlabel('Epochs', fontsize=18)
+    plt.ylabel('Loss', fontsize=18)
+
+    # Increase tick font size
+    plt.xticks(fontsize=16)
+    plt.yticks(fontsize=16)
+
+    # Increase legend font size
+    plt.legend(fontsize=16)
+
+    plt.show()
 
     # Save the figure
     plt.savefig("train_test_loss_plot.png")

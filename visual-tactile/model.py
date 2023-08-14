@@ -5,7 +5,7 @@ from torch.utils.data import Dataset
 from torch.nn import functional as F
 import random
 
-NUM_CLASSES = 7
+NUM_CLASSES = 20
 
 """Cross Entropy Network"""
 
