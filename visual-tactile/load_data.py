@@ -47,7 +47,7 @@ def fetch_data():
                                     normalize])
 
     for object_number in object_numbers:
-        folder_dir = f"../../data/tactile/train/{object_number}"
+        folder_dir = f"../../data/touch/train/{object_number}"
         for images in os.listdir(folder_dir):
             # check if the image ends with png
             if (images.endswith(".png")):

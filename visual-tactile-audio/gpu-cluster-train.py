@@ -122,7 +122,7 @@ def fetch_data():
                                     normalize])
     print(torch.cuda.memory_summary())
     for object_number in object_numbers:
-        folder_dir = f"/scratch/users/k21171248/data/audio/train/{object_number}"
+        folder_dir = f"../../data/audio/train/{object_number}"
         for audio_files in os.listdir(folder_dir):
             # check if the file ends with wav
             if (audio_files.endswith(".wav")):
@@ -135,7 +135,7 @@ def fetch_data():
                 label_train.append(object_number)
 
     for object_number in object_numbers:
-        folder_dir = f"/scratch/users/k21171248/data/audio/test/{object_number}"
+        folder_dir = f"../../data/audio/test/{object_number}"
         for audio_files in os.listdir(folder_dir):
             # check if the file ends with wav
             if (audio_files.endswith(".wav")):
@@ -146,7 +146,7 @@ def fetch_data():
                 label_test.append(object_number)
 
     for object_number in object_numbers:
-        folder_dir = f"/scratch/users/k21171248/data/touch/train/{object_number}"
+        folder_dir = f"../../data/touch/train/{object_number}"
         for images in os.listdir(folder_dir):
             # check if the image ends with png
             if (images.endswith(".png")):
@@ -157,7 +157,7 @@ def fetch_data():
                 tactile_train.append(img_tensor)
  
     for object_number in object_numbers:
-        folder_dir = f"/scratch/users/k21171248/data/touch/test/{object_number}"
+        folder_dir = f"../../data/touch/test/{object_number}"
         for images in os.listdir(folder_dir):
             # check if the image ends with png
             if (images.endswith(".png")):
@@ -168,7 +168,7 @@ def fetch_data():
                 tactile_test.append(img_tensor)
 
     for object_number in object_numbers:
-        folder_dir = f"/scratch/users/k21171248/data/vision/train/{object_number}"
+        folder_dir = f"../../data/vision/train/{object_number}"
         for images in os.listdir(folder_dir):
             # check if the image ends with png
             if (images.endswith(".png")):
@@ -179,7 +179,7 @@ def fetch_data():
                 visual_train.append(img_tensor)
 
     for object_number in object_numbers:
-        folder_dir = f"/scratch/users/k21171248/data/vision/test/{object_number}"
+        folder_dir = f"../../data/vision/test/{object_number}"
         for images in os.listdir(folder_dir):
             # check if the image ends with png
             if (images.endswith(".png")):
