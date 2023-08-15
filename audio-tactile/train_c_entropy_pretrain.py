@@ -1,7 +1,5 @@
 from model import ResnetBranch, CrossSensoryNetwork
 from load_data import get_loader
-from evaluation import evaluate
-
 import torch
 from torch import nn
 from collections import defaultdict
@@ -11,8 +9,10 @@ import numpy as np
 NUM_CLASSES = 20
 
 EPOCHS_PRETRAIN = 15
-EPOCHS_C_ENTROPY = 45
+EPOCHS_C_ENTROPY = 50
 BATCH_SIZE = 5
+
+FILE_SUFFIX = "pre"
 
 class TactileNetwork(nn.Module):
     def __init__(self, pre_trained=True, hidden_dim=2048, output_dim=200):
@@ -36,7 +36,7 @@ def train_c_entropy_pretrain(epochs_pretrain = EPOCHS_PRETRAIN, epochs=EPOCHS_C_
     pretrain_criterion = nn.CrossEntropyLoss()
 
     # Get the dataloaders and parameters
-    dataloader, input_data_par = get_loader(BATCH_SIZE)
+    dataloader, input_data_par = get_loader(batch_size)
 
     # Get the train and test loaders
     train_loader = dataloader['train']
@@ -49,7 +49,7 @@ def train_c_entropy_pretrain(epochs_pretrain = EPOCHS_PRETRAIN, epochs=EPOCHS_C_
     train_losses = []
     test_losses = []
 
-    for epoch in range(EPOCHS_PRETRAIN):
+    for epoch in range(epochs_pretrain):
         tactile_network.train()  # set network to training mode
         total_loss = 0
 
@@ -96,21 +96,23 @@ def train_c_entropy_pretrain(epochs_pretrain = EPOCHS_PRETRAIN, epochs=EPOCHS_C_
         print(f'Pretraining Epoch {epoch}, Test Loss: {test_loss}')
 
     # Save the model
-    torch.save(tactile_network.state_dict(), './tactile_network_pretrain.pth')
+    torch.save(tactile_network.state_dict(), f'./tactile_network_pretrain_{FILE_SUFFIX}.pth')
 
     # Plot train and test loss
+    plt.figure(figsize=(10,5))
     plt.plot(train_losses, label='Training loss')
     plt.plot(test_losses, label='Test loss')
-    plt.title('Loss Metrics')
-    plt.ylabel('Loss')
-    plt.xlabel('Epochs')
-    plt.legend()
-    plt.grid(True)
-    plt.savefig('loss_plot.png')
+    plt.title('Loss Metrics', fontsize=18)
+    plt.ylabel('Loss', fontsize=18)
+    plt.xlabel('Epochs', fontsize=18)
+    plt.xticks(fontsize=16)
+    plt.yticks(fontsize=16)
+    plt.legend(fontsize=16)
+    plt.savefig(f'loss_plot_{FILE_SUFFIX}.png')
     plt.show()
     # Save the embeddings after pretraining
     print("Pretraining completed. Saving pretrain tactile embeddings...")
-    np.save('tactile_embeddings_pretrain.npy', dict(tactile_embeddings_pretrain))
+    np.save(f'tactile_embeddings_pretrain_{FILE_SUFFIX}.npy', dict(tactile_embeddings_pretrain))
         
     network = CrossSensoryNetwork().to(device)
 
@@ -126,7 +128,7 @@ def train_c_entropy_pretrain(epochs_pretrain = EPOCHS_PRETRAIN, epochs=EPOCHS_C_
     test_losses = []
 
     # Training loop
-    for epoch in range(EPOCHS_C_ENTROPY):
+    for epoch in range(epochs):
         network.train()  # set network to training mode
         total_train_loss = 0
 
@@ -188,25 +190,27 @@ def train_c_entropy_pretrain(epochs_pretrain = EPOCHS_PRETRAIN, epochs=EPOCHS_C_
 
     # Save the embeddings after all epochs
     print("Training completed. Saving embeddings...")
-    np.save('audio_embeddings_kaggle_train.npy', dict(audio_embeddings_train))
-    np.save('tactile_embeddings_kaggle_train.npy', dict(tactile_embeddings_train))
-    np.save('audio_embeddings_kaggle_test.npy', dict(audio_embeddings_test))
-    np.save('tactile_embeddings_kaggle_test.npy', dict(tactile_embeddings_test))
+    np.save(f'audio_embeddings_kaggle_train_{FILE_SUFFIX}.npy', dict(audio_embeddings_train))
+    np.save(f'tactile_embeddings_kaggle_train_{FILE_SUFFIX}.npy', dict(tactile_embeddings_train))
+    np.save(f'audio_embeddings_kaggle_test_{FILE_SUFFIX}.npy', dict(audio_embeddings_test))
+    np.save(f'tactile_embeddings_kaggle_test_{FILE_SUFFIX}.npy', dict(tactile_embeddings_test))
 
     # Save the trained model
-    torch.save(network.state_dict(), 'audio-tactile-model-7.pth')
+    torch.save(network.state_dict(), f'audio-tactile-model-20_{FILE_SUFFIX}.pth')
 
     # After training, plot the losses
     plt.figure(figsize=(10,5))
     plt.plot(train_losses, label='Train Loss')
     plt.plot(test_losses, label='Test Loss')
-    plt.title('Train and Test Loss over time')
-    plt.xlabel('Epochs')
-    plt.ylabel('Loss')
-    plt.legend()
+    plt.title('Train and Test Loss over time', fontsize=18)
+    plt.xticks(fontsize=16)
+    plt.yticks(fontsize=16)
+    plt.xlabel('Epochs', fontsize=18)
+    plt.ylabel('Loss', fontsize=18)
+    plt.legend(fontsize=16)
 
     # Save the figure
-    plt.savefig("train_test_loss_plot.png")
+    plt.savefig(f"train_test_loss_plot_{FILE_SUFFIX}.png")
 
     # Display the plot
     plt.show()

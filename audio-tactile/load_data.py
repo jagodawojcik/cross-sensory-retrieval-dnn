@@ -6,6 +6,11 @@ from sklearn.preprocessing import LabelEncoder
 import torch
 import librosa
 from torchvision import transforms
+import pathlib
+
+CURRENT_DIRECTORY = pathlib.Path(__file__).parent.resolve()
+DATASET_DIRECTORY = os.path.join(CURRENT_DIRECTORY, "..", "..", "data")
+OBJECT_NUMBERS = [1, 2, 3, 4, 13, 17, 18, 25, 29, 30, 33, 49, 50, 66, 67, 68, 71, 83, 89, 100]
 
 class CustomDataSet(Dataset):
     def __init__(self, audio, tactile, labels):
@@ -34,10 +39,6 @@ def fetch_data():
     label_train = []
     label_test = []
     
-    ## Object numbers used in the model
-#     object_numbers = [1, 2, 3, 4, 13, 17, 18, 25, 29, 30, 33, 49, 50, 66, 67, 68, 71, 83, 89, 100]
-    object_numbers = [1, 4, 18, 25, 30, 50, 100]
-    
     # Initialize transforms for preprocessing
     normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
                                      std=[0.229, 0.224, 0.225])
@@ -46,12 +47,9 @@ def fetch_data():
                                     transforms.ToTensor(),
                                     normalize])
 
-    for object_number in object_numbers:
-        folder_dir = f"/kaggle/input/audio-tactile-data/audio_split/train/{object_number}"
-#         count = 0
+    for object_number in OBJECT_NUMBERS:
+        folder_dir = f"{DATASET_DIRECTORY}/audio/train/{object_number}"
         for audio_files in os.listdir(folder_dir):
-#             if count >= 60:
-#                 break
             # check if the file ends with wav
             if (audio_files.endswith(".wav")):
                 # load the audio
@@ -59,52 +57,35 @@ def fetch_data():
                 audio = torch.tensor(audio).unsqueeze(0)  # Add a dimension for the channel
                 audio_train.append(torch.tensor(audio))
                 label_train.append(object_number)
-#                 count += 1
 
-    for object_number in object_numbers:
-        folder_dir = f"/kaggle/input/audio-tactile-data/audio_split/test/{object_number}"
-#         count = 0
+    for object_number in OBJECT_NUMBERS:
+        folder_dir = f"{DATASET_DIRECTORY}/audio/test/{object_number}"
         for audio_files in os.listdir(folder_dir):
-#             if count >= 20:
-#                 break
-            # check if the file ends with wav
             if (audio_files.endswith(".wav")):
-                # load the audio
                 audio, _ = librosa.load(os.path.join(folder_dir, audio_files), sr=None)
                 audio = torch.tensor(audio).unsqueeze(0)  # Add a dimension for the channel
                 audio_test.append(torch.tensor(audio))
                 label_test.append(object_number)
-#                 count += 1
 
-    for object_number in object_numbers:
-        folder_dir = f"/kaggle/input/audio-tactile-data/tactile/train/{object_number}"
-#         count = 0
+    for object_number in OBJECT_NUMBERS:
+        folder_dir = f"{DATASET_DIRECTORY}/touch/train/{object_number}"
         for images in os.listdir(folder_dir):
-#             if count >= 60:
-#                 break
-            # check if the image ends with png
             if (images.endswith(".png")):
                 # load the image
                 img = Image.open(os.path.join(folder_dir, images))
                 # apply transformations
                 img_tensor = transform(img)
                 tactile_train.append(img_tensor)
-#                 count += 1
  
-    for object_number in object_numbers:
-        folder_dir = f"/kaggle/input/audio-tactile-data/tactile/test/{object_number}"
-#         count = 0
+    for object_number in OBJECT_NUMBERS:
+        folder_dir = f"{DATASET_DIRECTORY}/touch/test/{object_number}"
         for images in os.listdir(folder_dir):
-#             if count >= 20:
-#                 break
-            # check if the image ends with png
             if (images.endswith(".png")):
                 # load the image
                 img = Image.open(os.path.join(folder_dir, images))
                 # apply transformations
                 img_tensor = transform(img)
                 tactile_test.append(img_tensor)
-#                 count += 1
 
     return audio_train, audio_test, tactile_train, tactile_test, label_train, label_test
 
@@ -113,9 +94,6 @@ def fetch_data():
 def get_loader(batch_size):
     audio_train, audio_test, tactile_train, tactile_test, label_train, label_test = fetch_data()
     
-    ##Specify category labels
-#     labels = [1, 2, 3, 4, 13, 17, 18, 25, 29, 30, 33, 49, 50, 66, 67, 68, 71, 83, 89, 100]
-    labels = [1, 4, 18, 25, 30, 50, 100]
     encoder = LabelEncoder()
     
     label_train = encoder.fit_transform(label_train)

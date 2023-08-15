@@ -5,7 +5,7 @@ from torchvision import models
 import random
 from torch.utils.data import Dataset
 
-NUM_CLASSES = 7
+NUM_CLASSES = 20
 
 """Cross-Entropy Loss Network"""
 
