@@ -40,9 +40,6 @@ def fetch_data():
     label_train = []
     label_test = []
     
-    ## Specify the object numbers to be used for training and testing
-    
-    # object_numbers = [1, 4, 18, 25, 30, 50, 100]
     # Initialize transforms
     normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
                                      std=[0.229, 0.224, 0.225])
@@ -83,7 +80,6 @@ def fetch_data():
     for object_number in OBJECT_NUMBERS:
         folder_dir = f"{DATASET_DIRECTORY}/vision/train/{object_number}"
         for images in os.listdir(folder_dir):
-        
             # check if the image ends with png
             if (images.endswith(".png")):
                 # load the image
@@ -109,7 +105,6 @@ def fetch_data():
                 img_tensor = transform(img)
                 visual_test.append(img_tensor)
 #                 count += 1
-
 
     return tactile_train, tactile_test, visual_train, visual_test, label_train, label_test
 
