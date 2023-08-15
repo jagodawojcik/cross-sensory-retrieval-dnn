@@ -11,7 +11,7 @@ EPOCHS_C_ENTROPY = 90
 BATCH_SIZE = 5
 
 NUM_CLASSES = 20
-FILE_SUFFIX = "pretrain"
+FILE_SUFFIX = ""
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
@@ -99,137 +99,137 @@ def c_entropy_train_with_tactile_pretrain(epochs_pretrain=EPOCHS_PRETRAIN, epoch
         test_losses.append(test_loss)
         print(f'Pretraining Epoch {epoch}, Test Loss: {test_loss}')
 
-        # Save the pretrain tactile model
-        torch.save(tactile_network.state_dict(), f'./tactile_network_pretrain_{FILE_SUFFIX}.pth')
+    # Save the pretrain tactile model
+    torch.save(tactile_network.state_dict(), f'./tactile_network_pretrain_{FILE_SUFFIX}.pth')
 
-        # Plot train and test loss
-        plt.figure(figsize=(10, 5))
-        plt.plot(train_losses, label='Training loss')
-        plt.plot(test_losses, label='Test loss')
-        plt.title('Loss Metrics', fontsize=18)
-        plt.ylabel('Loss', fontsize=18)
-        plt.xlabel('Epochs', fontsize=18)
-        plt.xticks(fontsize=16)
-        plt.yticks(fontsize=16)
-        plt.legend(fontsize=16)
-        plt.savefig(f'loss_plot_{FILE_SUFFIX}.png')
-        plt.show()
-        # Save the embeddings after pretraining
-        print("Pretraining completed. Saving pretrain tactile embeddings...")
-        np.save(f'tactile_embeddings_pretrain_{FILE_SUFFIX}.npy', dict(tactile_embeddings_pretrain))
+    # Plot train and test loss
+    plt.figure(figsize=(10, 5))
+    plt.plot(train_losses, label='Training loss')
+    plt.plot(test_losses, label='Test loss')
+    plt.title('Loss Metrics', fontsize=18)
+    plt.ylabel('Loss', fontsize=18)
+    plt.xlabel('Epochs', fontsize=18)
+    plt.xticks(fontsize=16)
+    plt.yticks(fontsize=16)
+    plt.legend(fontsize=16)
+    plt.savefig(f'loss_plot_{FILE_SUFFIX}.png')
+    plt.show()
+    # Save the embeddings after pretraining
+    print("Pretraining completed. Saving pretrain tactile embeddings...")
+    np.save(f'tactile_embeddings_pretrain_{FILE_SUFFIX}.npy', dict(tactile_embeddings_pretrain))
 
 
-        # Initialize your CrossSensory Network
-        network = CrossSensoryNetwork().to(device)
+    # Initialize your CrossSensory Network
+    network = CrossSensoryNetwork().to(device)
 
-        # Load the pretrained weights into the tactile branch
-        network.tactile_branch.load_state_dict(tactile_network.tactile_branch.state_dict())
+    # Load the pretrained weights into the tactile branch
+    network.tactile_branch.load_state_dict(tactile_network.tactile_branch.state_dict())
 
-        # Initialize your optimizer and loss function for the main training
-        optimizer = torch.optim.Adam(network.parameters(), lr=0.001)
-        criterion = nn.CrossEntropyLoss()
+    # Initialize your optimizer and loss function for the main training
+    optimizer = torch.optim.Adam(network.parameters(), lr=0.001)
+    criterion = nn.CrossEntropyLoss()
 
-        # Initialize lists to store losses
-        train_losses = []
-        test_losses = []
+    # Initialize lists to store losses
+    train_losses = []
+    test_losses = []
 
-        # Training loop
-        for epoch in range(epochs):
-            network.train()  # set network to training mode
-            total_train_loss = 0
+    # Training loop
+    for epoch in range(epochs):
+        network.train()  # set network to training mode
+        total_train_loss = 0
 
-            # Initialize embeddings storage for each epoch
-            visual_embeddings_train = defaultdict(list)
-            tactile_embeddings_train = defaultdict(list)
+        # Initialize embeddings storage for each epoch
+        visual_embeddings_train = defaultdict(list)
+        tactile_embeddings_train = defaultdict(list)
 
-            # Training phase
-            for i, (visual_input, tactile_input, targets) in enumerate(train_loader):
+        # Training phase
+        for i, (visual_input, tactile_input, targets) in enumerate(train_loader):
+            visual_input, tactile_input, targets = visual_input.to(device), tactile_input.to(device), targets.to(device)
+
+            optimizer.zero_grad()
+
+            # Get outputs and embeddings
+            visual_output, tactile_output, joint_embeddings = network(visual_input, tactile_input)
+
+            # Compute the loss
+            loss = criterion(joint_embeddings, targets)
+            total_train_loss += loss.item()
+
+            # Backward and optimize
+            loss.backward()
+            optimizer.step()
+
+            # Save embeddings for each batch
+            for j in range(visual_output.shape[0]):
+                label = targets[j].item()
+                visual_embeddings_train[label].append(visual_output[j].detach().cpu().numpy())
+                tactile_embeddings_train[label].append(tactile_output[j].detach().cpu().numpy())
+
+        epoch_train_loss = total_train_loss / len(train_loader)
+        train_losses.append(epoch_train_loss)  # Append training loss for current epoch
+
+        # Evaluation phase on test set
+        network.eval()  # set network to evaluation mode
+        visual_embeddings_test = defaultdict(list)
+        tactile_embeddings_test = defaultdict(list)
+        total_test_loss = 0
+        with torch.no_grad():
+            for i, (visual_input, tactile_input, targets) in enumerate(test_loader):
                 visual_input, tactile_input, targets = visual_input.to(device), tactile_input.to(device), targets.to(device)
-
-                optimizer.zero_grad()
 
                 # Get outputs and embeddings
                 visual_output, tactile_output, joint_embeddings = network(visual_input, tactile_input)
 
                 # Compute the loss
                 loss = criterion(joint_embeddings, targets)
-                total_train_loss += loss.item()
+                total_test_loss += loss.item()
 
-                # Backward and optimize
-                loss.backward()
-                optimizer.step()
-
-                # Save embeddings for each batch
+                # Save test embeddings for each batch
                 for j in range(visual_output.shape[0]):
                     label = targets[j].item()
-                    visual_embeddings_train[label].append(visual_output[j].detach().cpu().numpy())
-                    tactile_embeddings_train[label].append(tactile_output[j].detach().cpu().numpy())
+                    visual_embeddings_test[label].append(visual_output[j].detach().cpu().numpy())
+                    tactile_embeddings_test[label].append(tactile_output[j].detach().cpu().numpy())
 
-            epoch_train_loss = total_train_loss / len(train_loader)
-            train_losses.append(epoch_train_loss)  # Append training loss for current epoch
+        test_loss = total_test_loss / len(test_loader)
+        test_losses.append(test_loss)  # Append test loss for current epoch
+        print(f'Epoch {epoch}, Train Loss: {epoch_train_loss}, Test Loss: {test_loss}')
 
-            # Evaluation phase on test set
-            network.eval()  # set network to evaluation mode
-            visual_embeddings_test = defaultdict(list)
-            tactile_embeddings_test = defaultdict(list)
-            total_test_loss = 0
-            with torch.no_grad():
-                for i, (visual_input, tactile_input, targets) in enumerate(test_loader):
-                    visual_input, tactile_input, targets = visual_input.to(device), tactile_input.to(device), targets.to(device)
+    # Save the embeddings after all epochs
+    print("Training completed. Saving embeddings...")
+    np.save(f'visual_embeddings_kaggle_train_{FILE_SUFFIX}.npy', dict(visual_embeddings_train))
+    np.save(f'tactile_embeddings_kaggle_train_{FILE_SUFFIX}.npy', dict(tactile_embeddings_train))
+    np.save(f'visual_embeddings_kaggle_test_{FILE_SUFFIX}.npy', dict(visual_embeddings_test))
+    np.save(f'tactile_embeddings_kaggle_test_{FILE_SUFFIX}.npy', dict(tactile_embeddings_test))
 
-                    # Get outputs and embeddings
-                    visual_output, tactile_output, joint_embeddings = network(visual_input, tactile_input)
+    # Save the trained model
+    torch.save(network.state_dict(), f'visual-tactile-model-20_{FILE_SUFFIX}.pth')
 
-                    # Compute the loss
-                    loss = criterion(joint_embeddings, targets)
-                    total_test_loss += loss.item()
+    # After training, plot the losses
+    plt.figure(figsize=(10, 5))
+    plt.plot(train_losses, label='Train Loss')
+    plt.plot(test_losses, label='Test Loss')
 
-                    # Save test embeddings for each batch
-                    for j in range(visual_output.shape[0]):
-                        label = targets[j].item()
-                        visual_embeddings_test[label].append(visual_output[j].detach().cpu().numpy())
-                        tactile_embeddings_test[label].append(tactile_output[j].detach().cpu().numpy())
+    # Increase title font size
+    plt.title('Train and Test Loss over time', fontsize=18)
 
-            test_loss = total_test_loss / len(test_loader)
-            test_losses.append(test_loss)  # Append test loss for current epoch
-            print(f'Epoch {epoch}, Train Loss: {epoch_train_loss}, Test Loss: {test_loss}')
+    # Increase x and y axis label font size
+    plt.xlabel('Epochs', fontsize=18)
+    plt.ylabel('Loss', fontsize=18)
 
-        # Save the embeddings after all epochs
-        print("Training completed. Saving embeddings...")
-        np.save(f'visual_embeddings_kaggle_train_{FILE_SUFFIX}.npy', dict(visual_embeddings_train))
-        np.save(f'tactile_embeddings_kaggle_train_{FILE_SUFFIX}.npy', dict(tactile_embeddings_train))
-        np.save(f'visual_embeddings_kaggle_test_{FILE_SUFFIX}.npy', dict(visual_embeddings_test))
-        np.save(f'tactile_embeddings_kaggle_test_{FILE_SUFFIX}.npy', dict(tactile_embeddings_test))
+    # Increase tick font size
+    plt.xticks(fontsize=16)
+    plt.yticks(fontsize=16)
 
-        # Save the trained model
-        torch.save(network.state_dict(), f'visual-tactile-model-20_{FILE_SUFFIX}.pth')
+    # Increase legend font size
+    plt.legend(fontsize=16)
 
-        # After training, plot the losses
-        plt.figure(figsize=(10, 5))
-        plt.plot(train_losses, label='Train Loss')
-        plt.plot(test_losses, label='Test Loss')
+    plt.show()
 
-        # Increase title font size
-        plt.title('Train and Test Loss over time', fontsize=18)
+    # Save the figure
+    plt.savefig(f"train_test_loss_plot_{FILE_SUFFIX}.png")
 
-        # Increase x and y axis label font size
-        plt.xlabel('Epochs', fontsize=18)
-        plt.ylabel('Loss', fontsize=18)
-
-        # Increase tick font size
-        plt.xticks(fontsize=16)
-        plt.yticks(fontsize=16)
-
-        # Increase legend font size
-        plt.legend(fontsize=16)
-
-        plt.show()
-
-        # Save the figure
-        plt.savefig(f"train_test_loss_plot_{FILE_SUFFIX}.png")
-
-        # Display the plot
-        plt.show()
+    # Display the plot
+    plt.show()
 
 
 if __name__ == '__main__':
