@@ -6,7 +6,7 @@ from model import CrossSensoryNetwork
 import numpy as np
 from collections import defaultdict
 import matplotlib.pyplot as plt
-from model import CrossSensoryNetwork
+import os
 
 ##if training with TPU will need to import these:
 # import torch_xla
@@ -15,21 +15,23 @@ from model import CrossSensoryNetwork
 EPOCHS_C_ENTROPY = 80
 BATCH_SIZE = 5
 
-
 ## If training with TPU
 # device = xm.xla_device()
 ## If training with GPU
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+os.system("echo 'Using device: {}'".format(device))
 
 def train_with_cross_entropy(epochs_c_entropy=EPOCHS_C_ENTROPY, batch_size=BATCH_SIZE):
 
+    os.system("echo 'Init Network'")
     # Initialize network model
     network = CrossSensoryNetwork().to(device)
 
     # Initialize your optimizer and loss function
     optimizer = torch.optim.Adam(network.parameters(), lr=0.001)
     criterion = nn.CrossEntropyLoss()
-
+    
+    os.system("echo 'Get Dataloader'")
     # Get the dataloaders and parameters - parameters for debug only
     dataloader, input_data_par = get_loader(batch_size)
 
@@ -41,6 +43,7 @@ def train_with_cross_entropy(epochs_c_entropy=EPOCHS_C_ENTROPY, batch_size=BATCH
     train_losses = []
     test_losses = []
 
+    os.system("echo 'Start Training'")
     # Training loop
     for epoch in range(epochs_c_entropy):
         network.train()  # set network to training mode
@@ -76,6 +79,7 @@ def train_with_cross_entropy(epochs_c_entropy=EPOCHS_C_ENTROPY, batch_size=BATCH
         epoch_train_loss = total_train_loss / len(train_loader)
         train_losses.append(epoch_train_loss)  # Append training loss for current epoch
 
+        os.system("echo 'Start Evaluation on Test Set'")
         # Evaluation phase on test set
         network.eval()  # set network to evaluation mode
 
@@ -105,9 +109,11 @@ def train_with_cross_entropy(epochs_c_entropy=EPOCHS_C_ENTROPY, batch_size=BATCH
 
         test_loss = total_test_loss / len(test_loader)
         test_losses.append(test_loss)  # Append test loss for current epoch
+        os.system("echo 'Epoch {}, Train Loss: {}, Test Loss: {}'".format(epoch, epoch_train_loss, test_loss))
         print(f'Epoch {epoch}, Train Loss: {epoch_train_loss}, Test Loss: {test_loss}')
+    os.system("echo 'Training Completed'")
 
-
+    os.system("echo 'Saving Embeddings'")
     # Save the embeddings after all epochs
     print("Training completed. Saving embeddings...")
     np.save('visual_embeddings_kaggle_train.npy', dict(visual_embeddings_train))
@@ -115,9 +121,11 @@ def train_with_cross_entropy(epochs_c_entropy=EPOCHS_C_ENTROPY, batch_size=BATCH
     np.save('visual_embeddings_kaggle_test.npy', dict(visual_embeddings_test))
     np.save('tactile_embeddings_kaggle_test.npy', dict(tactile_embeddings_test))
 
+    os.system("echo 'Saving Model'")
     # Save the trained model
     torch.save(network.state_dict(), 'visual-tactile-model-20.pth')
 
+    os.system("echo 'Plotting Losses'")
     # After training, plot the losses
     plt.figure(figsize=(10, 5))
     plt.plot(train_losses, label='Train Loss')
@@ -145,6 +153,9 @@ def train_with_cross_entropy(epochs_c_entropy=EPOCHS_C_ENTROPY, batch_size=BATCH
     # Display the plot
     plt.show()
 
+    os.system("echo 'Done'")
+
+    
 
 if __name__ == '__main__':
     train_with_cross_entropy(epochs_c_entropy=EPOCHS_C_ENTROPY, batch_size=BATCH_SIZE)

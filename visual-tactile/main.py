@@ -1,6 +1,7 @@
 from train_c_entropy import train_with_cross_entropy
 from train_triplet_loss import train_with_triplet_loss
 from train_c_entropy_pretrain import c_entropy_train_with_tactile_pretrain
+import os
 
 EPOCHS_C_ENTROPY = 50
 EPOCHS_TRIPLET_LOSS = 40
@@ -9,6 +10,7 @@ BATCH_SIZE = 5
 
 def main():
     print("---------Starting Cross Entropy Training-----------")
+    os.system("echo 'Starting Cross Entropy Training'")
     train_with_cross_entropy(EPOCHS_C_ENTROPY, BATCH_SIZE)
     print("-----------Cross Entropy Training Completed-----------")
 
@@ -17,6 +19,7 @@ def main():
     # print("----------Triplet Loss Training Completed-----------")
 
     print("---------Starting Cross Entropy Training-----------")
+    os.system("echo 'Starting Cross Entropy Training with Pretrain'")
     c_entropy_train_with_tactile_pretrain(EPOCHS_PRETRAIN, EPOCHS_C_ENTROPY, BATCH_SIZE)
     print("-----------Cross Entropy Training Completed-----------")
 
