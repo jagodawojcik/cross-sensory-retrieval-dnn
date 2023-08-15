@@ -7,17 +7,15 @@ from collections import defaultdict
 import matplotlib.pyplot as plt
 
 
-EPOCHS_C_ENTROPY = 105
+EPOCHS_C_ENTROPY = 50
 BATCH_SIZE = 5
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 def train_with_cross_entropy(epochs_c_entropy=EPOCHS_C_ENTROPY, batch_size=BATCH_SIZE):
 
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-
     # Get the dataloaders and parameters
-    dataloader, input_data_par = get_loader(BATCH_SIZE)
+    dataloader, input_data_par = get_loader(batch_size)
 
     # Get the train and test loaders
     train_loader = dataloader['train']
@@ -34,7 +32,7 @@ def train_with_cross_entropy(epochs_c_entropy=EPOCHS_C_ENTROPY, batch_size=BATCH
     test_losses = []
 
     # Training loop
-    for epoch in range(EPOCHS_C_ENTROPY):
+    for epoch in range(epochs_c_entropy):
         network.train()  # set network to training mode
         total_train_loss = 0
 
@@ -108,10 +106,12 @@ def train_with_cross_entropy(epochs_c_entropy=EPOCHS_C_ENTROPY, batch_size=BATCH
     plt.figure(figsize=(10,5))
     plt.plot(train_losses, label='Train Loss')
     plt.plot(test_losses, label='Test Loss')
-    plt.title('Train and Test Loss over time')
-    plt.xlabel('Epochs')
-    plt.ylabel('Loss')
-    plt.legend()
+    plt.title('Train and Test Loss over time', fontsize=18)
+    plt.xlabel('Epochs', fontsize=18)
+    plt.ylabel('Loss', fontsize=18)
+    plt.xticks(fontsize=16)
+    plt.yticks(fontsize=16)
+    plt.legend(fontsize=16)
 
     # Save the figure
     plt.savefig("train_test_loss_plot.png")
