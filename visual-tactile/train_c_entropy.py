@@ -54,7 +54,7 @@ def train_with_cross_entropy(epochs_c_entropy=EPOCHS_C_ENTROPY, batch_size=BATCH
         tactile_embeddings_train = defaultdict(list)
 
         # Training phase
-        for i, (tactile_input, visual_input, targets) in enumerate(train_loader):
+        for i, (visual_input, tactile_input, targets) in enumerate(train_loader):
             visual_input, tactile_input, targets = visual_input.to(device), tactile_input.to(device), targets.to(device)
 
             optimizer.zero_grad()
@@ -91,7 +91,7 @@ def train_with_cross_entropy(epochs_c_entropy=EPOCHS_C_ENTROPY, batch_size=BATCH
         
         #Evaluation phase on test set - does not affect the model parameters
         with torch.no_grad():
-            for i, (tactile_input, visual_input, targets) in enumerate(test_loader):
+            for i, (visual_input, tactile_input, targets) in enumerate(test_loader):
                 visual_input, tactile_input, targets = visual_input.to(device), tactile_input.to(device), targets.to(device)
 
                 # Get outputs and embeddings
