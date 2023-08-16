@@ -22,7 +22,7 @@ class CustomDataSet(Dataset):
         vis = self.visual[index]
         tact = self.tactile[index]
         lab = self.labels[index]
-        return tact, vis, lab
+        return vis, tact, lab
 
     def __len__(self):
         count = len(self.visual)
