@@ -7,14 +7,11 @@ import numpy as np
 import matplotlib.pyplot as plt
 import json
 import os
-
-
 # Create a directory to save your results
 RESULTS_DIRECTORY = 'results'
 # Number of epochs and margin for triplet loss
 EPOCHS = 20001
 MARGIN = 0.5
-
 
 # Set device to gpu if available
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -39,10 +36,10 @@ def train_with_triplet_loss(epochs=EPOCHS, batch_size=1):
         file.write(f"Training with margin {MARGIN} and {EPOCHS} epochs.")
 
     # Load your embeddings
-    visual_embeddings = np.load("visual_embeddings_kaggle_train.npy", allow_pickle=True).item()
-    tactile_embeddings = np.load("tactile_embeddings_kaggle_train.npy", allow_pickle=True).item()
-    visual_embeddings_test = np.load("visual_embeddings_kaggle_test.npy", allow_pickle=True).item()  
-    tactile_embeddings_test = np.load("tactile_embeddings_kaggle_test.npy", allow_pickle=True).item()  
+    visual_embeddings = np.load("visual_embeddings_kaggle_train_.npy", allow_pickle=True).item()
+    tactile_embeddings = np.load("tactile_embeddings_kaggle_train_.npy", allow_pickle=True).item()
+    visual_embeddings_test = np.load("visual_embeddings_kaggle_test_.npy", allow_pickle=True).item()  
+    tactile_embeddings_test = np.load("tactile_embeddings_kaggle_test_.npy", allow_pickle=True).item()  
 
     # Instantiate your dataset and dataloader
     triplet_dataset = TripletDataset(visual_embeddings, tactile_embeddings)
@@ -168,10 +165,12 @@ def train_with_triplet_loss(epochs=EPOCHS, batch_size=1):
     # Plot the triplet loss
     plt.figure(figsize=(12,6))
     plt.plot(range(len(triplet_loss_save['triplet_loss'])), triplet_loss_save['triplet_loss'], label='Triplet Loss')
-    plt.xlabel('Epoch')
-    plt.ylabel('Triplet Loss')
-    plt.legend()
-    plt.title('Triplet Loss Training')
+    plt.xlabel('Epoch', fontsize=18)
+    plt.ylabel('Triplet Loss', fontsize=18)
+    plt.legend(fontsize=16)
+    plt.xticks(fontsize=16)
+    plt.yticks(fontsize=16)
+    plt.title('Triplet Loss Training', fontsize=18)
     plt.savefig(f'{RESULTS_DIRECTORY}/triplet_loss_plot.png')
     plt.close()
 

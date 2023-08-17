@@ -11,9 +11,9 @@ def main():
     train_with_cross_entropy(EPOCHS_PRETRAIN, EPOCHS_C_ENTROPY, BATCH_SIZE)
     print("-----------Cross Entropy Training Completed-----------")
 
-    print("----------Starting Triplet Loss Training and Evaluation-----------")
-    train_with_triplet_loss(epochs=EPOCHS_TRIPLET_LOSS)
-    print("----------Triplet Loss Training Completed-----------")
+    # print("----------Starting Triplet Loss Training and Evaluation-----------")
+    # train_with_triplet_loss(epochs=EPOCHS_TRIPLET_LOSS)
+    # print("----------Triplet Loss Training Completed-----------")
 
 
 if __name__ == "__main__":

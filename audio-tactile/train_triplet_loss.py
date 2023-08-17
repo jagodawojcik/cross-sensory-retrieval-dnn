@@ -168,10 +168,12 @@ def train_with_triplet_loss(epochs=EPOCHS, batch_size=1):
     # Plot the triplet loss
     plt.figure(figsize=(12,6))
     plt.plot(range(len(triplet_loss_save['triplet_loss'])), triplet_loss_save['triplet_loss'], label='Triplet Loss')
-    plt.xlabel('Epoch')
-    plt.ylabel('Triplet Loss')
-    plt.legend()
-    plt.title('Triplet Loss Training')
+    plt.xlabel('Epoch', fontsize=18)
+    plt.ylabel('Triplet Loss', fontsize=18)
+    plt.legend(fontsize=16)
+    plt.xticks(fontsize=16)
+    plt.yticks(fontsize=16)
+    plt.title('Triplet Loss Training', fontsize=18)
     plt.savefig(f'{RESULTS_DIRECTORY}/triplet_loss_plot.png')
     plt.close()
 

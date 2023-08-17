@@ -24,7 +24,7 @@ def train_with_cross_entropy(epochs_pre = EPOCHS_PRETRAIN, epochs_cross_entropy=
     pretrain_criterion = nn.CrossEntropyLoss()
 
     # Get the dataloaders and parameters
-    dataloader, input_data_par = get_loader(BATCH_SIZE)
+    dataloader, input_data_par = get_loader(batch_size)
 
     # Get the train and test loaders
     train_loader = dataloader['train']
@@ -37,7 +37,7 @@ def train_with_cross_entropy(epochs_pre = EPOCHS_PRETRAIN, epochs_cross_entropy=
     train_losses = []
     test_losses = []
 
-    for epoch in range(EPOCHS_PRETRAIN):
+    for epoch in range(epochs_pre):
         tactile_network.train()  # set network to training mode
         total_loss = 0
 
@@ -87,14 +87,16 @@ def train_with_cross_entropy(epochs_pre = EPOCHS_PRETRAIN, epochs_cross_entropy=
     torch.save(tactile_network.state_dict(), './tactile_network_pretrain.pth')
 
     # Plot train and test loss
+    plt.figure(figsize=(10, 5))
     plt.plot(train_losses, label='Training loss')
     plt.plot(test_losses, label='Test loss')
-    plt.title('Loss Metrics')
-    plt.ylabel('Loss')
-    plt.xlabel('Epochs')
-    plt.legend()
-    plt.grid(True)
-    plt.savefig('loss_plot.png')
+    plt.title('Loss Metrics', fontsize=18)
+    plt.ylabel('Loss', fontsize=18)
+    plt.xlabel('Epochs', fontsize=18)
+    plt.xticks(fontsize=16)
+    plt.yticks(fontsize=16)
+    plt.legend(fontsize=16)
+    plt.savefig(f'loss_plot.png')
     plt.show()
     # Save the embeddings after pretraining
     print("Pretraining completed. Saving pretrain tactile embeddings...")
@@ -114,7 +116,7 @@ def train_with_cross_entropy(epochs_pre = EPOCHS_PRETRAIN, epochs_cross_entropy=
     test_losses = []
 
     # Training loop
-    for epoch in range(EPOCHS_C_ENTROPY):
+    for epoch in range(epochs_cross_entropy):
         network.train()  # set network to training mode
         total_train_loss = 0
 
@@ -192,16 +194,29 @@ def train_with_cross_entropy(epochs_pre = EPOCHS_PRETRAIN, epochs_cross_entropy=
     torch.save(network.state_dict(), 'audio-tactile-visual-model.pth')
 
     # After training, plot the losses
-    plt.figure(figsize=(10,5))
+    plt.figure(figsize=(10, 5))
     plt.plot(train_losses, label='Train Loss')
     plt.plot(test_losses, label='Test Loss')
-    plt.title('Train and Test Loss over time')
-    plt.xlabel('Epochs')
-    plt.ylabel('Loss')
-    plt.legend()
+
+    # Increase title font size
+    plt.title('Train and Test Loss over time', fontsize=18)
+
+    # Increase x and y axis label font size
+    plt.xlabel('Epochs', fontsize=18)
+    plt.ylabel('Loss', fontsize=18)
+
+    # Increase tick font size
+    plt.xticks(fontsize=16)
+    plt.yticks(fontsize=16)
+
+    # Increase legend font size
+    plt.legend(fontsize=16)
+
+    plt.show()
 
     # Save the figure
     plt.savefig("train_test_loss_plot.png")
 
     # Display the plot
     plt.show()
+

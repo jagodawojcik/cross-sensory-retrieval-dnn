@@ -74,7 +74,7 @@ def train_with_triplet_loss(epochs=EPOCHS, batch_size=1):
     max_visual2audio = 0.0
 
     # Start training loop
-    for epoch in range(EPOCHS):
+    for epoch in range(epochs):
         total_loss = 0
 
         for i, (anchor, positive, negative, label) in enumerate(triplet_dataloader):
@@ -105,7 +105,7 @@ def train_with_triplet_loss(epochs=EPOCHS, batch_size=1):
 
         avg_loss = total_loss / len(triplet_dataloader)
         triplet_loss_save['triplet_loss'].append(avg_loss)
-        print('Epoch [{}/{}], Loss: {:.4f}'.format(epoch+1, EPOCHS, avg_loss))
+        print('Epoch [{}/{}], Loss: {:.4f}'.format(epoch+1, epochs, avg_loss))
 
         if epoch % 100 == 0:
             new_audio_embeddings = {k: model(torch.tensor(v, device=device)).detach().cpu().numpy() for k, v in audio_embeddings.items()}
@@ -169,10 +169,12 @@ def train_with_triplet_loss(epochs=EPOCHS, batch_size=1):
     # Plot the triplet loss
     plt.figure(figsize=(12,6))
     plt.plot(range(len(triplet_loss_save['triplet_loss'])), triplet_loss_save['triplet_loss'], label='Triplet Loss')
-    plt.xlabel('Epoch')
-    plt.ylabel('Triplet Loss')
-    plt.legend()
-    plt.title('Triplet Loss Training')
+    plt.xlabel('Epoch', fontsize=18)
+    plt.ylabel('Triplet Loss', fontsize=18)
+    plt.legend(fontsize=16)
+    plt.xticks(fontsize=16)
+    plt.yticks(fontsize=16)
+    plt.title('Triplet Loss Training', fontsize=18)
     plt.savefig(f'{RESULTS_DIRECTORY}/triplet_loss_plot.png')
     plt.close()
 
