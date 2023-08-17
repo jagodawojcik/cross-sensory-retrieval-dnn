@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import librosa
 
-NUM_CLASSES = 20
+NUM_CLASSES = 7
 
 """Cross Entropy Network"""
 
@@ -111,7 +111,7 @@ def fetch_data():
     label_train = []
     label_test = []
 
-    object_numbers = [1, 2, 3, 4, 13, 17, 18, 25, 29, 30, 33, 49, 50, 66, 67, 68, 71, 83, 89, 100]
+    object_numbers = [1, 4, 18, 25, 30, 50, 100]
     
     # Initialize transforms
     normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
@@ -197,7 +197,7 @@ def fetch_data():
 
 def get_loader(batch_size):
     audio_train, audio_test, tactile_train, tactile_test, visual_train, visual_test, label_train, label_test = fetch_data()
-    labels = [1, 2, 3, 4, 13, 17, 18, 25, 29, 30, 33, 49, 50, 66, 67, 68, 71, 83, 89, 100]
+
     encoder = LabelEncoder()
     label_train = encoder.fit_transform(label_train)
     label_test = encoder.fit_transform(label_test)
