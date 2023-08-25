@@ -5,6 +5,7 @@ import torch
 import torch.nn as nn
 from model import TactileNetwork, CrossSensoryNetwork
 from load_data import get_loader
+import os
 
 EPOCHS_PRETRAIN = 15
 EPOCHS_C_ENTROPY = 50
@@ -35,6 +36,7 @@ def train_with_cross_entropy(epochs_pre = EPOCHS_PRETRAIN, epochs_cross_entropy=
     train_losses = []
     test_losses = []
 
+    os.system("echo 'starting pretraining'")
     for epoch in range(epochs_pre):
         tactile_network.train()  # set network to training mode
         total_loss = 0
@@ -80,7 +82,7 @@ def train_with_cross_entropy(epochs_pre = EPOCHS_PRETRAIN, epochs_cross_entropy=
         test_loss = total_test_loss/len(test_loader)
         test_losses.append(test_loss)
         print(f'Pretraining Epoch {epoch}, Test Loss: {test_loss}')
-
+    os.system("echo 'finish pretraining")
     # Save the model
     torch.save(tactile_network.state_dict(), './tactile_network_pretrain.pth')
 
@@ -94,12 +96,12 @@ def train_with_cross_entropy(epochs_pre = EPOCHS_PRETRAIN, epochs_cross_entropy=
     plt.xticks(fontsize=16)
     plt.yticks(fontsize=16)
     plt.legend(fontsize=16)
-    plt.savefig(f'loss_plot.png')
+    plt.savefig('loss_plot.png')
     plt.show()
     # Save the embeddings after pretraining
     print("Pretraining completed. Saving pretrain tactile embeddings...")
     np.save('tactile_embeddings_pretrain.npy', dict(tactile_embeddings_pretrain))
-        
+    os.system("echo 'finish plotting and saving'")
     network = CrossSensoryNetwork().to(device)
 
     # Load the pretrained weights into the tactile branch
