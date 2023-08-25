@@ -4,11 +4,30 @@ from torchvision import models
 from torch.utils.data import Dataset
 from torch.nn import functional as F
 import random
+from torch.nn import MultiheadAttention
 
 NUM_CLASSES = 20
 
-"""Cross Entropy Network"""
+class CBAM(nn.Module):
+    def __init__(self, channel, reduction=16):
+        super(CBAM, self).__init__()
+        # Channel attention
+        self.avg_pool = nn.AdaptiveAvgPool2d(1)
+        self.max_pool = nn.AdaptiveMaxPool2d(1)
+        self.shared_MLP = nn.Sequential(
+            nn.Linear(channel, channel // reduction, bias=False),
+            nn.ReLU(),
+            nn.Linear(channel // reduction, channel, bias=False))
+        self.sigmoid = nn.Sigmoid()
 
+    def forward(self, x):
+        avgout = self.shared_MLP(self.avg_pool(x).view(x.size(0), -1))
+        maxout = self.shared_MLP(self.max_pool(x).view(x.size(0), -1))
+        out = avgout + maxout
+        return self.sigmoid(out).view(x.size(0), x.size(1), 1, 1) * x
+
+
+"""Cross Entropy Network"""
 ##Visual an Tactile Branches
 class ResnetBranch(nn.Module):
     """A network branch based on a pretrained ResNet."""
@@ -19,10 +38,12 @@ class ResnetBranch(nn.Module):
         num_features = self.base_model.fc.in_features
         self.base_model.fc = nn.Identity()  # remove the final fully connected layer
         self.fc = nn.Linear(num_features, output_dim)  # new fc layer for embeddings
+        self.cbam = CBAM(channel=output_dim)
 
     def forward(self, x):
         x = self.base_model(x)
         embeddings = self.fc(x)
+        embeddings = self.cbam(embeddings)
         return embeddings
     
 class AudioBranch(nn.Module):
@@ -43,22 +64,31 @@ class AudioBranch(nn.Module):
         x = x.view(x.size(0), -1)  # flatten
         x = self.fc(x)
         return x
+
 #Joint Branch
 class CrossSensoryNetwork(nn.Module):
     def __init__(self, pre_trained=True, hidden_dim=2048, output_dim=200):
         super(CrossSensoryNetwork, self).__init__()
         self.tactile_branch = ResnetBranch(pre_trained, hidden_dim, output_dim)
         self.audio_branch = AudioBranch(hidden_dim, output_dim)
-        self.visual_branch = ResnetBranch(pre_trained, hidden_dim, output_dim)  # new branch
-        self.joint_fc = nn.Linear(output_dim * 3, NUM_CLASSES)  # to get the joint embeddings
+        self.visual_branch = ResnetBranch(pre_trained, hidden_dim, output_dim)
+        self.joint_fc = nn.Linear(output_dim * 2, NUM_CLASSES)  # for classification
+        self.attention = MultiheadAttention(embed_dim=output_dim, num_heads=8)
 
-    def forward(self, audio_input, tactile_input, visual_input):  # new input parameter
+    def forward(self, audio_input, tactile_input, visual_input):
         tactile_output = self.tactile_branch(tactile_input)
         audio_output = self.audio_branch(audio_input)
-        visual_output = self.visual_branch(visual_input)  # process the visual input
-        joint_input = torch.cat((tactile_output, audio_output, visual_output), dim=1)  # concatenate all three
-        joint_embeddings = self.joint_fc(joint_input)
-        return audio_output, tactile_output, visual_output, joint_embeddings  # return visual output
+        visual_output = self.visual_branch(visual_input)
+
+        # Use the visual_output as the query to the attention mechanism
+        attn_out, _ = self.attention(visual_output.unsqueeze(0), tactile_output.unsqueeze(0), audio_output.unsqueeze(0))
+        attn_out = attn_out.squeeze(0)  # Remove the extra dimension
+
+        # Concatenation for classification
+        joint_representation = torch.cat([visual_output, attn_out], dim=1)
+        joint_classification_output = self.joint_fc(joint_representation)
+
+        return audio_output, tactile_output, visual_output, attn_out, joint_classification_output
   
 #Pretrain Branch for Tactile
 class TactileNetwork(nn.Module):
@@ -71,9 +101,7 @@ class TactileNetwork(nn.Module):
         tactile_output = self.tactile_branch(tactile_input)
         outputs = self.fc(tactile_output)
         return outputs
-
     
-
 """Triplet Loss Network"""
 class EmbeddingNet(nn.Module):
     def __init__(self, embedding_dim):

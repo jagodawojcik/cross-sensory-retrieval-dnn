@@ -12,7 +12,7 @@ import os
 # Create a directory to save your results
 RESULTS_DIRECTORY = 'results'
 # Number of epochs and margin for triplet loss
-EPOCHS = 30001
+EPOCHS = 20001
 MARGIN = 0.5
 
 

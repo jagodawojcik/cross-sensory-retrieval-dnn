@@ -28,8 +28,8 @@ def train_with_cross_entropy(epochs_pre = EPOCHS_PRETRAIN, epochs_cross_entropy=
     train_loader = dataloader['train']
     test_loader = dataloader['test']
 
-    # Pretraining loop
-    tactile_embeddings_pretrain = defaultdict(list)
+    # # Pretraining loop
+    # tactile_embeddings_pretrain = defaultdict(list)
 
     # Initialize list to store losses
     train_losses = []
@@ -59,7 +59,7 @@ def train_with_cross_entropy(epochs_pre = EPOCHS_PRETRAIN, epochs_cross_entropy=
             # Save embeddings for each batch
             for j in range(tactile_output.shape[0]):
                 label = targets[j].item()
-                tactile_embeddings_pretrain[label].append(tactile_output[j].detach().cpu().numpy())
+                # tactile_embeddings_pretrain[label].append(tactile_output[j].detach().cpu().numpy())
             
         # End of epoch
         train_loss = total_loss/len(train_loader)
@@ -94,11 +94,11 @@ def train_with_cross_entropy(epochs_pre = EPOCHS_PRETRAIN, epochs_cross_entropy=
     plt.xticks(fontsize=16)
     plt.yticks(fontsize=16)
     plt.legend(fontsize=16)
-    plt.savefig(f'loss_plot.png')
+    plt.savefig(f'pretrain_loss_plot.png')
     plt.show()
-    # Save the embeddings after pretraining
-    print("Pretraining completed. Saving pretrain tactile embeddings...")
-    np.save('tactile_embeddings_pretrain.npy', dict(tactile_embeddings_pretrain))
+    # # Save the embeddings after pretraining
+    # print("Pretraining completed. Saving pretrain tactile embeddings...")
+    # np.save('tactile_embeddings_pretrain.npy', dict(tactile_embeddings_pretrain))
         
     network = CrossSensoryNetwork().to(device)
 
@@ -122,7 +122,7 @@ def train_with_cross_entropy(epochs_pre = EPOCHS_PRETRAIN, epochs_cross_entropy=
         audio_embeddings_train = defaultdict(list)
         tactile_embeddings_train = defaultdict(list)
         visual_embeddings_train = defaultdict(list)
-
+        audio_tactile_fused_train = defaultdict(list)
         # Training phase
         for i, (audio_input, tactile_input, visual_input, targets) in enumerate(train_loader):
             audio_input, tactile_input, visual_input, targets = audio_input.to(device), tactile_input.to(device), visual_input.to(device), targets.to(device)
@@ -130,10 +130,10 @@ def train_with_cross_entropy(epochs_pre = EPOCHS_PRETRAIN, epochs_cross_entropy=
             optimizer.zero_grad()
 
             # Get outputs and embeddings
-            audio_output, tactile_output, visual_output, joint_embeddings = network(audio_input, tactile_input, visual_input)
+            audio_output, tactile_output, visual_output, attention_out, joint_embeddings = network(audio_input, tactile_input, visual_input)
 
             # Compute the loss
-            loss = criterion(audio_output, targets)
+            loss = criterion(joint_embeddings, targets)
             total_train_loss += loss.item()
 
             # Backward and optimize
@@ -146,6 +146,7 @@ def train_with_cross_entropy(epochs_pre = EPOCHS_PRETRAIN, epochs_cross_entropy=
                 audio_embeddings_train[label].append(audio_output[j].detach().cpu().numpy())
                 tactile_embeddings_train[label].append(tactile_output[j].detach().cpu().numpy())
                 visual_embeddings_train[label].append(visual_output[j].detach().cpu().numpy())
+                audio_tactile_fused_train[label].append(attention_out[j].detach().cpu().numpy())
         
         epoch_train_loss = total_train_loss / len(train_loader)
         train_losses.append(epoch_train_loss)  # Append training loss for current epoch
@@ -155,14 +156,15 @@ def train_with_cross_entropy(epochs_pre = EPOCHS_PRETRAIN, epochs_cross_entropy=
         audio_embeddings_test = defaultdict(list)
         tactile_embeddings_test = defaultdict(list)
         visual_embeddings_test = defaultdict(list)
-        
+        audio_tactile_fused_test = defaultdict(list)
+
         total_test_loss = 0
         with torch.no_grad():
             for i, (audio_input, tactile_input, visual_input, targets) in enumerate(test_loader):
                 audio_input, tactile_input, visual_input, targets = audio_input.to(device), tactile_input.to(device), visual_input.to(device), targets.to(device)
 
                 # Get outputs and embeddings
-                audio_output, tactile_output, visual_output, joint_embeddings = network(audio_input, tactile_input, visual_input)
+                audio_output, tactile_output, visual_output, attention_out, joint_embeddings = network(audio_input, tactile_input, visual_input)
 
                 # Compute the loss
                 loss = criterion(joint_embeddings, targets)
@@ -174,22 +176,24 @@ def train_with_cross_entropy(epochs_pre = EPOCHS_PRETRAIN, epochs_cross_entropy=
                     audio_embeddings_test[label].append(audio_output[j].detach().cpu().numpy())
                     tactile_embeddings_test[label].append(tactile_output[j].detach().cpu().numpy())
                     visual_embeddings_test[label].append(visual_output[j].detach().cpu().numpy())
-        
+                    audio_tactile_fused_test[label].append(attention_out[j].detach().cpu().numpy())
+
         test_loss = total_test_loss / len(test_loader)
         test_losses.append(test_loss)  # Append test loss for current epoch
         print(f'Epoch {epoch}, Train Loss: {epoch_train_loss}, Test Loss: {test_loss}')
 
     # Save the embeddings after all epochs
     print("Training completed. Saving embeddings...")
-    np.save('audio_embeddings_kaggle_train.npy', dict(audio_embeddings_train))
-    np.save('tactile_embeddings_kaggle_train.npy', dict(tactile_embeddings_train))
-    np.save('visual_embeddings_kaggle_train.npy', dict(visual_embeddings_train))
-    np.save('audio_embeddings_kaggle_test.npy', dict(audio_embeddings_test))
-    np.save('tactile_embeddings_kaggle_test.npy', dict(tactile_embeddings_test))
-    np.save('visual_embeddings_kaggle_test.npy', dict(visual_embeddings_test))
-
+    np.save('audio_embeddings_train.npy', dict(audio_embeddings_train))
+    np.save('tactile_embeddings_train.npy', dict(tactile_embeddings_train))
+    np.save('visual_embeddings_train.npy', dict(visual_embeddings_train))
+    np.save('audio_tactile_fused_train.npy', dict(audio_tactile_fused_train))
+    np.save('audio_embeddings_test.npy', dict(audio_embeddings_test))
+    np.save('tactile_embeddings_test.npy', dict(tactile_embeddings_test))
+    np.save('visual_embeddings_test.npy', dict(visual_embeddings_test))
+    np.save('audio_tactile_fused_test.npy', dict(audio_tactile_fused_test))
     # Save the trained model
-    torch.save(network.state_dict(), 'audio-tactile-visual-model.pth')
+    torch.save(network.state_dict(), 'audio-tactile-query-visual-model.pth')
 
     # After training, plot the losses
     plt.figure(figsize=(10, 5))
