@@ -8,25 +8,6 @@ from torch.nn import MultiheadAttention
 
 NUM_CLASSES = 20
 
-class CBAM(nn.Module):
-    def __init__(self, channel, reduction=16):
-        super(CBAM, self).__init__()
-        # Channel attention
-        self.avg_pool = nn.AdaptiveAvgPool2d(1)
-        self.max_pool = nn.AdaptiveMaxPool2d(1)
-        self.shared_MLP = nn.Sequential(
-            nn.Linear(channel, channel // reduction, bias=False),
-            nn.ReLU(),
-            nn.Linear(channel // reduction, channel, bias=False))
-        self.sigmoid = nn.Sigmoid()
-
-    def forward(self, x):
-        avgout = self.shared_MLP(self.avg_pool(x).view(x.size(0), -1))
-        maxout = self.shared_MLP(self.max_pool(x).view(x.size(0), -1))
-        out = avgout + maxout
-        return self.sigmoid(out).view(x.size(0), x.size(1), 1, 1) * x
-
-
 """Cross Entropy Network"""
 ##Visual an Tactile Branches
 class ResnetBranch(nn.Module):
@@ -38,12 +19,10 @@ class ResnetBranch(nn.Module):
         num_features = self.base_model.fc.in_features
         self.base_model.fc = nn.Identity()  # remove the final fully connected layer
         self.fc = nn.Linear(num_features, output_dim)  # new fc layer for embeddings
-        self.cbam = CBAM(channel=output_dim)
 
     def forward(self, x):
         x = self.base_model(x)
         embeddings = self.fc(x)
-        embeddings = self.cbam(embeddings)
         return embeddings
     
 class AudioBranch(nn.Module):
