@@ -59,8 +59,8 @@ class CrossSensoryNetwork(nn.Module):
         audio_output = self.audio_branch(audio_input)
         visual_output = self.visual_branch(visual_input)
 
-        # Use the visual_output as the query to the attention mechanism
-        attn_out, _ = self.attention(visual_output.unsqueeze(0), tactile_output.unsqueeze(0), audio_output.unsqueeze(0))
+        # Use the tactile_output as the query to the attention mechanism
+        attn_out, _ = self.attention(tactile_output.unsqueeze(0), visual_output.unsqueeze(0), audio_output.unsqueeze(0))
         attn_out = attn_out.squeeze(0)  # Remove the extra dimension
 
         # Concatenation for classification

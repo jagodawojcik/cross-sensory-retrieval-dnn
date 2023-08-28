@@ -122,7 +122,7 @@ def train_with_cross_entropy(epochs_pre = EPOCHS_PRETRAIN, epochs_cross_entropy=
         audio_embeddings_train = defaultdict(list)
         tactile_embeddings_train = defaultdict(list)
         visual_embeddings_train = defaultdict(list)
-        audio_tactile_fused_train = defaultdict(list)
+        audio_visual_fused_train = defaultdict(list)
         # Training phase
         for i, (audio_input, tactile_input, visual_input, targets) in enumerate(train_loader):
             audio_input, tactile_input, visual_input, targets = audio_input.to(device), tactile_input.to(device), visual_input.to(device), targets.to(device)
@@ -146,7 +146,7 @@ def train_with_cross_entropy(epochs_pre = EPOCHS_PRETRAIN, epochs_cross_entropy=
                 audio_embeddings_train[label].append(audio_output[j].detach().cpu().numpy())
                 tactile_embeddings_train[label].append(tactile_output[j].detach().cpu().numpy())
                 visual_embeddings_train[label].append(visual_output[j].detach().cpu().numpy())
-                audio_tactile_fused_train[label].append(attention_out[j].detach().cpu().numpy())
+                audio_visual_fused_train[label].append(attention_out[j].detach().cpu().numpy())
         
         epoch_train_loss = total_train_loss / len(train_loader)
         train_losses.append(epoch_train_loss)  # Append training loss for current epoch
@@ -156,7 +156,7 @@ def train_with_cross_entropy(epochs_pre = EPOCHS_PRETRAIN, epochs_cross_entropy=
         audio_embeddings_test = defaultdict(list)
         tactile_embeddings_test = defaultdict(list)
         visual_embeddings_test = defaultdict(list)
-        audio_tactile_fused_test = defaultdict(list)
+        audio_visual_fused_test = defaultdict(list)
 
         total_test_loss = 0
         with torch.no_grad():
@@ -176,7 +176,7 @@ def train_with_cross_entropy(epochs_pre = EPOCHS_PRETRAIN, epochs_cross_entropy=
                     audio_embeddings_test[label].append(audio_output[j].detach().cpu().numpy())
                     tactile_embeddings_test[label].append(tactile_output[j].detach().cpu().numpy())
                     visual_embeddings_test[label].append(visual_output[j].detach().cpu().numpy())
-                    audio_tactile_fused_test[label].append(attention_out[j].detach().cpu().numpy())
+                    audio_visual_fused_test[label].append(attention_out[j].detach().cpu().numpy())
 
         test_loss = total_test_loss / len(test_loader)
         test_losses.append(test_loss)  # Append test loss for current epoch
@@ -187,13 +187,13 @@ def train_with_cross_entropy(epochs_pre = EPOCHS_PRETRAIN, epochs_cross_entropy=
     np.save('audio_embeddings_train.npy', dict(audio_embeddings_train))
     np.save('tactile_embeddings_train.npy', dict(tactile_embeddings_train))
     np.save('visual_embeddings_train.npy', dict(visual_embeddings_train))
-    np.save('audio_tactile_fused_train.npy', dict(audio_tactile_fused_train))
+    np.save('audio_tactile_fused_train.npy', dict(audio_visual_fused_train))
     np.save('audio_embeddings_test.npy', dict(audio_embeddings_test))
     np.save('tactile_embeddings_test.npy', dict(tactile_embeddings_test))
     np.save('visual_embeddings_test.npy', dict(visual_embeddings_test))
-    np.save('audio_tactile_fused_test.npy', dict(audio_tactile_fused_test))
+    np.save('audio_visual_fused_test.npy', dict(audio_visual_fused_test))
     # Save the trained model
-    torch.save(network.state_dict(), 'audio-tactile-query-visual-model.pth')
+    torch.save(network.state_dict(), 'audio-visual-query-tactile-model.pth')
 
     # After training, plot the losses
     plt.figure(figsize=(10, 5))
