@@ -49,7 +49,7 @@ def calculate_MAP(queries, retrievals, query_labels, retrieval_labels):
     # the mean average precision is the mean of the average precision values for all queries
     return np.mean(APs)
 
-def evaluate_tact_vis(visual_test_embeddings, tactile_test_embeddings, visual_train_embeddings, tactile_train_embeddings):
+def evaluate(visual_test_embeddings, tactile_test_embeddings, visual_train_embeddings, tactile_train_embeddings):
     visual_test_queries, visual_test_query_labels = prepare_data_for_evaluation(visual_test_embeddings)
     tactile_test_queries, tactile_test_query_labels = prepare_data_for_evaluation(tactile_test_embeddings)
     visual_train_queries, visual_train_query_labels = prepare_data_for_evaluation(visual_train_embeddings)
@@ -62,35 +62,6 @@ def evaluate_tact_vis(visual_test_embeddings, tactile_test_embeddings, visual_tr
     MAP_visual2tactile = calculate_MAP(visual_test_queries, tactile_train_queries, visual_test_query_labels, tactile_train_query_labels)
 
     return MAP_tactile2visual, MAP_visual2tactile
-
-def evaluate_audio_vis(audio_test_embeddings, visual_test_embeddings, audio_train_embeddings, visual_train_embeddings):
-    audio_test_queries, audio_test_query_labels = prepare_data_for_evaluation(audio_test_embeddings)
-    visual_test_queries, visual_test_query_labels = prepare_data_for_evaluation(visual_test_embeddings)
-    audio_train_queries, audio_train_query_labels = prepare_data_for_evaluation(audio_train_embeddings)
-    visual_train_queries, visual_train_query_labels = prepare_data_for_evaluation(visual_train_embeddings)
-
-    # Calculate MAP for tactile2audio retrieval
-    MAP_visual2audio = calculate_MAP(visual_test_queries, audio_train_queries, visual_test_query_labels, audio_train_query_labels)
-
-    # Calculate MAP for audio2tactile retrieval
-    MAP_audio2visual = calculate_MAP(audio_test_queries, visual_train_queries, audio_test_query_labels, visual_train_query_labels)
-
-    return MAP_visual2audio, MAP_audio2visual
-
-
-def evaluate_audio_tact(audio_test_embeddings, tactile_test_embeddings, audio_train_embeddings, tactile_train_embeddings):
-    audio_test_queries, audio_test_query_labels = prepare_data_for_evaluation(audio_test_embeddings)
-    tactile_test_queries, tactile_test_query_labels = prepare_data_for_evaluation(tactile_test_embeddings)
-    audio_train_queries, audio_train_query_labels = prepare_data_for_evaluation(audio_train_embeddings)
-    tactile_train_queries, tactile_train_query_labels = prepare_data_for_evaluation(tactile_train_embeddings)
-
-    # Calculate MAP for tactile2audio retrieval
-    MAP_tactile2audio = calculate_MAP(tactile_test_queries, audio_train_queries, tactile_test_query_labels, audio_train_query_labels)
-
-    # Calculate MAP for audio2tactile retrieval
-    MAP_audio2tactile = calculate_MAP(audio_test_queries, tactile_train_queries, audio_test_query_labels, tactile_train_query_labels)
-
-    return MAP_tactile2audio, MAP_audio2tactile
 
 if __name__ == "__main__":
     visual_embeddings = np.load("visual_embeddings_kaggle_train.npy", allow_pickle=True).item()
