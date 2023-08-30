@@ -44,14 +44,37 @@ class AudioBranch(nn.Module):
         x = self.fc(x)
         return x
 
-#Joint Branch
+# #Joint Branch
+# class CrossSensoryNetwork(nn.Module):
+#     def __init__(self, pre_trained=True, hidden_dim=2048, output_dim=200):
+#         super(CrossSensoryNetwork, self).__init__()
+#         self.tactile_branch = ResnetBranch(pre_trained, hidden_dim, output_dim)
+#         self.audio_branch = AudioBranch(hidden_dim, output_dim)
+#         self.visual_branch = ResnetBranch(pre_trained, hidden_dim, output_dim)
+#         self.joint_fc = nn.Linear(output_dim * 2, NUM_CLASSES)  # for classification
+#         self.attention = MultiheadAttention(embed_dim=output_dim, num_heads=8)
+
+#     def forward(self, audio_input, tactile_input, visual_input):
+#         tactile_output = self.tactile_branch(tactile_input)
+#         audio_output = self.audio_branch(audio_input)
+#         visual_output = self.visual_branch(visual_input)
+
+#         # Use the tactile_output as the query to the attention mechanism
+#         attn_out, _ = self.attention(visual_output.unsqueeze(0), audio_output.unsqueeze(0), tactile_output.unsqueeze(0))
+#         attn_out = attn_out.squeeze(0)  # Remove the extra dimension
+
+#         # Concatenation for classification
+#         joint_representation = torch.cat([visual_output, attn_out], dim=1)
+#         joint_classification_output = self.joint_fc(joint_representation)
+
+#         return audio_output, tactile_output, visual_output, attn_out, joint_classification_output
 class CrossSensoryNetwork(nn.Module):
     def __init__(self, pre_trained=True, hidden_dim=2048, output_dim=200):
         super(CrossSensoryNetwork, self).__init__()
         self.tactile_branch = ResnetBranch(pre_trained, hidden_dim, output_dim)
         self.audio_branch = AudioBranch(hidden_dim, output_dim)
         self.visual_branch = ResnetBranch(pre_trained, hidden_dim, output_dim)
-        self.joint_fc = nn.Linear(output_dim * 2, NUM_CLASSES)  # for classification
+        self.joint_fc = nn.Linear(output_dim * 2, NUM_CLASSES)
         self.attention = MultiheadAttention(embed_dim=output_dim, num_heads=8)
 
     def forward(self, audio_input, tactile_input, visual_input):
@@ -59,15 +82,20 @@ class CrossSensoryNetwork(nn.Module):
         audio_output = self.audio_branch(audio_input)
         visual_output = self.visual_branch(visual_input)
 
-        # Use the tactile_output as the query to the attention mechanism
-        attn_out, _ = self.attention(visual_output.unsqueeze(0), audio_output.unsqueeze(0), tactile_output.unsqueeze(0))
-        attn_out = attn_out.squeeze(0)  # Remove the extra dimension
+        # Bi-directional cross-attention
+        attn_out1, _ = self.attention(visual_output.unsqueeze(0), tactile_output.unsqueeze(0), tactile_output.unsqueeze(0))
+        attn_out2, _ = self.attention(tactile_output.unsqueeze(0), visual_output.unsqueeze(0), visual_output.unsqueeze(0))
+
+        # Remove the extra dimensions and combine
+        attn_out1 = attn_out1.squeeze(0)
+        attn_out2 = attn_out2.squeeze(0)
+        attn_out_combined = (attn_out1 + attn_out2) / 2  # Average the two attention outputs
 
         # Concatenation for classification
-        joint_representation = torch.cat([visual_output, attn_out], dim=1)
+        joint_representation = torch.cat([visual_output, attn_out_combined], dim=1)
         joint_classification_output = self.joint_fc(joint_representation)
 
-        return audio_output, tactile_output, visual_output, attn_out, joint_classification_output
+        return audio_output, tactile_output, visual_output, attn_out_combined, joint_classification_output
   
 #Pretrain Branch for Tactile
 class TactileNetwork(nn.Module):
