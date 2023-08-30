@@ -3,7 +3,7 @@ from train_triplet_loss import train_with_triplet_loss
 
 EPOCHS_C_ENTROPY = 50
 EPOCHS_TRIPLET_LOSS = 40
-BATCH_SIZE = 10
+BATCH_SIZE = 5
 EPOCHS_PRETRAIN = 15
 
 def main():
