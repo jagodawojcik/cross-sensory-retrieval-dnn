@@ -68,6 +68,7 @@ class AudioBranch(nn.Module):
 #         joint_classification_output = self.joint_fc(joint_representation)
 
 #         return audio_output, tactile_output, visual_output, attn_out, joint_classification_output
+
 class CrossSensoryNetwork(nn.Module):
     def __init__(self, pre_trained=True, hidden_dim=2048, output_dim=200):
         super(CrossSensoryNetwork, self).__init__()
@@ -92,7 +93,7 @@ class CrossSensoryNetwork(nn.Module):
         attn_out_combined = (attn_out1 + attn_out2) / 2  # Average the two attention outputs
 
         # Concatenation for classification
-        joint_representation = torch.cat([visual_output, attn_out_combined], dim=1)
+        joint_representation = torch.cat([audio_output, attn_out_combined], dim=1)
         joint_classification_output = self.joint_fc(joint_representation)
 
         return audio_output, tactile_output, visual_output, attn_out_combined, joint_classification_output
