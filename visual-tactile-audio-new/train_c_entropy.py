@@ -187,11 +187,11 @@ def train_with_cross_entropy(epochs_pre = EPOCHS_PRETRAIN, epochs_cross_entropy=
     np.save('audio_embeddings_train.npy', dict(audio_embeddings_train))
     np.save('tactile_embeddings_train.npy', dict(tactile_embeddings_train))
     np.save('visual_embeddings_train.npy', dict(visual_embeddings_train))
-    np.save('audio_visual_fused_train.npy', dict(visual_tactile_fused_train))
+    np.save('audio_tactile_fused_train.npy', dict(visual_tactile_fused_train))
     np.save('audio_embeddings_test.npy', dict(audio_embeddings_test))
     np.save('tactile_embeddings_test.npy', dict(tactile_embeddings_test))
     np.save('visual_embeddings_test.npy', dict(visual_embeddings_test))
-    np.save('audio_visual_fused_test.npy', dict(visual_tactile_fused_test))
+    np.save('audio_tactile_fused_test.npy', dict(visual_tactile_fused_test))
     # Save the trained model
     torch.save(network.state_dict(), 'audio-visual-tactile-model.pth')
 
