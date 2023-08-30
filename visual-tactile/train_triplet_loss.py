@@ -35,11 +35,12 @@ def train_with_triplet_loss(epochs=EPOCHS, batch_size=1):
         file.write("\n")
         file.write(f"Training with margin {MARGIN} and {EPOCHS} epochs.")
 
+
     # Load your embeddings
-    visual_embeddings = np.load("visual_embeddings_kaggle_train_.npy", allow_pickle=True).item()
-    tactile_embeddings = np.load("tactile_embeddings_kaggle_train_.npy", allow_pickle=True).item()
-    visual_embeddings_test = np.load("visual_embeddings_kaggle_test_.npy", allow_pickle=True).item()  
-    tactile_embeddings_test = np.load("tactile_embeddings_kaggle_test_.npy", allow_pickle=True).item()  
+    visual_embeddings = np.load("visual_embeddings_train.npy", allow_pickle=True).item()
+    tactile_embeddings = np.load("audio_tactile_fused_train.npy", allow_pickle=True).item()
+    visual_embeddings_test = np.load("visual_embeddings_test.npy", allow_pickle=True).item()  
+    tactile_embeddings_test = np.load("audio_tactile_fused_test.npy", allow_pickle=True).item()  
 
     # Instantiate your dataset and dataloader
     triplet_dataset = TripletDataset(visual_embeddings, tactile_embeddings)
@@ -144,8 +145,8 @@ def train_with_triplet_loss(epochs=EPOCHS, batch_size=1):
 
     # Plot the results
     plt.figure(figsize=(12,6))
-    plt.plot(range(len(results_map['tactile2visual'])), results_map['tactile2visual'], label='Tactile to Visual')
-    plt.plot(range(len(results_map['visual2tactile'])), results_map['visual2tactile'], label='Visual to Tactile')
+    plt.plot(range(len(results_map['tactile2visual'])), results_map['tactile2visual'], label='Fused to Visual')
+    plt.plot(range(len(results_map['visual2tactile'])), results_map['visual2tactile'], label='Visual to Fused')
     plt.xlabel('Triplet Loss Training Epoch')
     plt.ylabel('MAP')
     plt.legend()
@@ -154,13 +155,13 @@ def train_with_triplet_loss(epochs=EPOCHS, batch_size=1):
     plt.close()
 
     #Print best results and save them to an information file
-    print('MAP Tactile to Visual: {}'.format(max_tactile2visual))
-    print('MAP Visual to Tactile: {}'.format(max_visual2tactile))
+    print('MAP Fused to Visual: {}'.format(max_tactile2visual))
+    print('MAP Visual to Fused: {}'.format(max_visual2tactile))
 
     with open(f"{RESULTS_DIRECTORY}/information.txt", "a") as file:
         # Write the user's input to the file
-        file.write(f"\nMAP Tactile to Visual: {max_tactile2visual}")
-        file.write(f"\nMAP Visual to Tactile: {max_visual2tactile}")
+        file.write(f"\nMAP Fused to Visual: {max_tactile2visual}")
+        file.write(f"\nMAP Visual to Fused: {max_visual2tactile}")
 
     # Plot the triplet loss
     plt.figure(figsize=(12,6))

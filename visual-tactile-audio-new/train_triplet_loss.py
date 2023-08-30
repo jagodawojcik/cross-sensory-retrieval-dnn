@@ -1,4 +1,4 @@
-from evaluation import evaluate_tact_vis, evaluate_audio_vis, evaluate_audio_tact
+from evaluation import evaluate
 from model import EmbeddingNet, TripletLoss, TripletDataset
 
 import torch
@@ -7,14 +7,11 @@ import numpy as np
 import matplotlib.pyplot as plt
 import json
 import os
-
-
 # Create a directory to save your results
 RESULTS_DIRECTORY = 'results'
 # Number of epochs and margin for triplet loss
 EPOCHS = 20001
 MARGIN = 0.5
-
 
 # Set device to gpu if available
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -30,24 +27,23 @@ def train_with_triplet_loss(epochs=EPOCHS, batch_size=1):
     os.makedirs(RESULTS_DIRECTORY)
 
     # Ask the user for input
-    user_input = input("Please enter any identification information about this training: ")
+    # user_input = input("Please enter any identification information about this training: ")
     # Open the file in write mode ('w')
     with open(f"{RESULTS_DIRECTORY}/information.txt", "w") as file:
         # Write the user's input to the file
-        file.write(user_input)
-        file.write("\n")
-        file.write(f"Training with margin {MARGIN} and {EPOCHS} epochs.")
+        # file.write(user_input)
+        # file.write("\n")
+        file.write(f"Query is Vision. Audio+Tactile as Retrieval. Classifiaction with audio. Training with margin {MARGIN} and {EPOCHS} epochs.")
+
 
     # Load your embeddings
-    visual_embeddings = np.load("visual_embeddings_kaggle_train.npy", allow_pickle=True).item()
-    tactile_embeddings = np.load("tactile_embeddings_kaggle_train.npy", allow_pickle=True).item()
-    audio_embeddings = np.load("audio_embeddings_kaggle_train.npy", allow_pickle=True).item()
-    visual_embeddings_test = np.load("visual_embeddings_kaggle_test.npy", allow_pickle=True).item()  
-    tactile_embeddings_test = np.load("tactile_embeddings_kaggle_test.npy", allow_pickle=True).item()  
-    audio_embeddings_test = np.load("audio_embeddings_kaggle_test.npy", allow_pickle=True).item() 
-    
+    query_embeddings = np.load("/scratch/users/k21171248/visual_embeddings_train.npy", allow_pickle=True).item()
+    fused_embeddings = np.load("/scratch/users/k21171248/audio_tactile_fused_train.npy", allow_pickle=True).item()
+    query_embeddings_test = np.load("/scratch/users/k21171248/visual_embeddings_test.npy", allow_pickle=True).item()  
+    fused_embeddings_test = np.load("/scratch/users/k21171248/audio_tactile_fused_test.npy", allow_pickle=True).item()  
+
     # Instantiate your dataset and dataloader
-    triplet_dataset = TripletDataset(visual_embeddings, tactile_embeddings, audio_embeddings)
+    triplet_dataset = TripletDataset(query_embeddings, fused_embeddings)
     triplet_dataloader = DataLoader(triplet_dataset, batch_size=1, shuffle=True)
 
     # Initialize loss function
@@ -59,12 +55,8 @@ def train_with_triplet_loss(epochs=EPOCHS, batch_size=1):
 
     # Create a directory to save your results
     results_map = {
-        'tactile2visual': [],
-        'visual2tactile': [],
-        'tactile2audio': [],
-        'audio2tactile': [],
-        'visual2audio': [],
-        'audio2visual': []
+        'fused2query': [],
+        'query2fused': []
     }
     triplet_loss_save = {
         'triplet_loss': []
@@ -75,12 +67,8 @@ def train_with_triplet_loss(epochs=EPOCHS, batch_size=1):
     }
 
     # Initialize max MAP values to get best MAP results during training
-    max_visual2tactile = 0.0
-    max_tactile2visual = 0.0
-    max_visual2audio = 0.0
-    max_audio2visual = 0.0
-    max_tactile2audio = 0.0
-    max_audio2tactile = 0.0
+    max_query2fused = 0.0
+    max_fused2query = 0.0
 
     # Start training loop
     for epoch in range(EPOCHS):
@@ -117,74 +105,35 @@ def train_with_triplet_loss(epochs=EPOCHS, batch_size=1):
         print('Epoch [{}/{}], Loss: {:.4f}'.format(epoch+1, EPOCHS, avg_loss))
 
         if epoch % 100 == 0:
-            new_visual_embeddings = {k: model(torch.tensor(v, device=device)).detach().cpu().numpy() for k, v in visual_embeddings.items()}
-            new_tactile_embeddings = {k: model(torch.tensor(v, device=device)).detach().cpu().numpy() for k, v in tactile_embeddings.items()}
-            new_audio_embeddings = {k: model(torch.tensor(v, device=device)).detach().cpu().numpy() for k, v in audio_embeddings.items()}
+            new_query_embeddings = {k: model(torch.tensor(v, device=device)).detach().cpu().numpy() for k, v in query_embeddings.items()}
+            new_fused_embeddings = {k: model(torch.tensor(v, device=device)).detach().cpu().numpy() for k, v in fused_embeddings.items()}
             
             with torch.no_grad():
-                new_visual_embeddings_test = {k: model(torch.tensor(v, device=device)).detach().cpu().numpy() for k, v in visual_embeddings_test.items()}
-                new_tactile_embeddings_test = {k: model(torch.tensor(v, device=device)).detach().cpu().numpy() for k, v in tactile_embeddings_test.items()}
-                new_audio_embeddings_test = {k: model(torch.tensor(v, device=device)).detach().cpu().numpy() for k, v in audio_embeddings_test.items()}
+                new_query_embeddings_test = {k: model(torch.tensor(v, device=device)).detach().cpu().numpy() for k, v in query_embeddings_test.items()}
+                new_fused_embeddings_test = {k: model(torch.tensor(v, device=device)).detach().cpu().numpy() for k, v in fused_embeddings_test.items()}
+
             
             # Evaluate embeddings
-            MAP_tactile2visual, MAP_visual2tactile = evaluate_tact_vis(new_visual_embeddings_test, new_tactile_embeddings_test, new_visual_embeddings, new_tactile_embeddings)
-            MAP_visual2audio, MAP_audio2visual = evaluate_audio_vis(new_audio_embeddings_test, new_visual_embeddings_test, new_audio_embeddings, new_visual_embeddings)
-            MAP_tactile2audio, MAP_audio2tactile = evaluate_audio_tact(new_audio_embeddings_test, new_tactile_embeddings_test, new_audio_embeddings, new_tactile_embeddings)
-
-            if MAP_tactile2visual > max_tactile2visual:
-                max_tactile2visual = MAP_tactile2visual
-                best_map_pairs['MAP_pairs'].append((epoch, MAP_tactile2visual, MAP_visual2tactile))
-                np.save('{}/trained_visual_embeddings_{}.npy'.format(RESULTS_DIRECTORY, epoch), new_visual_embeddings)
-                np.save('{}/trained_tactile_embeddings_{}.npy'.format(RESULTS_DIRECTORY, epoch), new_tactile_embeddings)
-                torch.save(model.state_dict(), f"{RESULTS_DIRECTORY}/model_best_tactile2visual.pth")
+            MAP_fused2query, MAP_query2fused = evaluate(new_query_embeddings_test, new_fused_embeddings_test, new_query_embeddings, new_fused_embeddings)
+            
+            if MAP_fused2query > max_fused2query:
+                max_fused2query = MAP_fused2query
+                best_map_pairs['MAP_pairs'].append((epoch, MAP_fused2query, MAP_query2fused))
+                np.save('{}/trained_query_embeddings_{}.npy'.format(RESULTS_DIRECTORY, epoch), new_query_embeddings)
+                np.save('{}/trained_fused_embeddings_{}.npy'.format(RESULTS_DIRECTORY, epoch), new_fused_embeddings)
+                torch.save(model.state_dict(), f"{RESULTS_DIRECTORY}/model_best_fused2query.pth")
                 
-            if MAP_visual2tactile > max_visual2tactile:
-                max_visual2tactile = MAP_visual2tactile
-                best_map_pairs['MAP_pairs'].append((epoch, MAP_tactile2visual, MAP_visual2tactile))
-                np.save('{}/trained_visual_embeddings_{}.npy'.format(RESULTS_DIRECTORY, epoch), new_visual_embeddings)
-                np.save('{}/trained_tactile_embeddings_{}.npy'.format(RESULTS_DIRECTORY, epoch), new_tactile_embeddings)
-                torch.save(model.state_dict(), f"{RESULTS_DIRECTORY}/model_best_visual2tactile.pth")
+            if MAP_query2fused > max_query2fused:
+                max_query2fused = MAP_query2fused
+                best_map_pairs['MAP_pairs'].append((epoch, MAP_fused2query, MAP_query2fused))
+                np.save('{}/trained_query_embeddings_{}.npy'.format(RESULTS_DIRECTORY, epoch), new_query_embeddings)
+                np.save('{}/trained_fused_embeddings_{}.npy'.format(RESULTS_DIRECTORY, epoch), new_fused_embeddings)
+                torch.save(model.state_dict(), f"{RESULTS_DIRECTORY}/model_best_query2fused.pth")
+
 
             # Add the results to the map
-            results_map['tactile2visual'].append(MAP_tactile2visual)
-            results_map['visual2tactile'].append(MAP_visual2tactile)
-
-
-            if MAP_visual2audio > max_visual2audio:
-                max_visual2audio = MAP_visual2audio
-                best_map_pairs['MAP_pairs'].append((epoch, MAP_visual2audio, MAP_audio2visual))
-                np.save('{}/trained_audio_embeddings_{}.npy'.format(RESULTS_DIRECTORY, epoch), new_audio_embeddings)
-                np.save('{}/trained_visual_embeddings_{}.npy'.format(RESULTS_DIRECTORY, epoch), new_visual_embeddings)
-                torch.save(model.state_dict(), f"{RESULTS_DIRECTORY}/model_best_visual2audio.pth")
-                
-            if MAP_audio2visual > max_audio2visual:
-                max_audio2visual = MAP_audio2visual
-                best_map_pairs['MAP_pairs'].append((epoch, MAP_visual2audio, MAP_audio2visual))
-                np.save('{}/trained_audio_embeddings_{}.npy'.format(RESULTS_DIRECTORY, epoch), new_audio_embeddings)
-                np.save('{}/trained_visual_embeddings_{}.npy'.format(RESULTS_DIRECTORY, epoch), new_visual_embeddings)
-                torch.save(model.state_dict(), f"{RESULTS_DIRECTORY}/model_best_audio2visual.pth")
-
-            # Add the results to the map
-            results_map['visual2audio'].append(MAP_visual2audio)
-            results_map['audio2visual'].append(MAP_audio2visual)
-
-            if MAP_tactile2audio > max_tactile2audio:
-                max_tactile2audio = MAP_tactile2audio
-                best_map_pairs['MAP_pairs'].append((epoch, MAP_tactile2audio, MAP_audio2tactile))
-                np.save('{}/trained_audio_embeddings_{}.npy'.format(RESULTS_DIRECTORY, epoch), new_audio_embeddings)
-                np.save('{}/trained_tactile_embeddings_{}.npy'.format(RESULTS_DIRECTORY, epoch), new_tactile_embeddings)
-                torch.save(model.state_dict(), f"{RESULTS_DIRECTORY}/model_best_tactile2audio.pth")
-                
-            if MAP_audio2tactile > max_audio2tactile:
-                max_audio2tactile = MAP_audio2tactile
-                best_map_pairs['MAP_pairs'].append((epoch, MAP_tactile2audio, MAP_audio2tactile))
-                np.save('{}/trained_audio_embeddings_{}.npy'.format(RESULTS_DIRECTORY, epoch), new_audio_embeddings)
-                np.save('{}/trained_tactile_embeddings_{}.npy'.format(RESULTS_DIRECTORY, epoch), new_tactile_embeddings)
-                torch.save(model.state_dict(), f"{RESULTS_DIRECTORY}/model_best_audio2tactile.pth")
-
-            # Add the results to the map
-            results_map['tactile2audio'].append(MAP_tactile2audio)
-            results_map['audio2tactile'].append(MAP_audio2tactile)
+            results_map['fused2query'].append(MAP_fused2query)
+            results_map['query2fused'].append(MAP_query2fused)
 
     # Save the map results as a JSON file
     with open('{}/map_results_{}.json'.format(RESULTS_DIRECTORY, epoch), 'w') as f:
@@ -196,46 +145,32 @@ def train_with_triplet_loss(epochs=EPOCHS, batch_size=1):
 
     # Plot the results
     plt.figure(figsize=(12,6))
-    plt.plot(range(len(results_map['tactile2visual'])), results_map['tactile2visual'], label='Tactile to Visual')
-    plt.plot(range(len(results_map['visual2tactile'])), results_map['visual2tactile'], label='Visual to Tactile')
-    plt.plot(range(len(results_map['tactile2audio'])), results_map['tactile2audio'], label='Tactile to Audio')
-    plt.plot(range(len(results_map['audio2tactile'])), results_map['audio2tactile'], label='Audio to Tactile')
-    plt.plot(range(len(results_map['visual2audio'])), results_map['visual2audio'], label='Visual to Audio')
-    plt.plot(range(len(results_map['audio2visual'])), results_map['audio2visual'], label='Audio to Visual')
-    plt.xlabel('Triplet Loss Training Epoch', fontsize=18)
-    plt.ylabel('MAP', fontsize=18)
-    plt.xticks(fontsize=16)
-    plt.xticks(fontsize=16)
-    plt.legend(fontsize=16)
-    plt.title('MAP Results - Triplet Loss Training', fontsize=18)
+    plt.plot(range(len(results_map['fused2query'])), results_map['fused2query'], label='Fused to Query')
+    plt.plot(range(len(results_map['query2fused'])), results_map['query2fused'], label='Query to Fused')
+    plt.xlabel('Triplet Loss Training Epoch')
+    plt.ylabel('MAP')
+    plt.legend()
+    plt.title('MAP Results - Triplet Loss Training')
     plt.savefig('{}/map_plot_{}.png'.format(RESULTS_DIRECTORY, epoch))
     plt.close()
 
     #Print best results and save them to an information file
-    print('MAP Tactile to Visual: {}'.format(max_tactile2visual))
-    print('MAP Visual to Tactile: {}'.format(max_visual2tactile))
-    print('MAP Tactile to Audio: {}'.format(max_tactile2audio))
-    print('MAP Audio to Tactile: {}'.format(max_audio2tactile))
-    print('MAP Visual to Audio: {}'.format(max_visual2audio))
-    print('MAP Audio to Visual: {}'.format(max_audio2visual))
+    print('MAP Fused to Query: {}'.format(max_fused2query))
+    print('MAP Query to Fused: {}'.format(max_query2fused))
 
     with open(f"{RESULTS_DIRECTORY}/information.txt", "a") as file:
         # Write the user's input to the file
-        file.write(f"\nMAP Tactile to Visual: {max_tactile2visual}")
-        file.write(f"\nMAP Visual to Tactile: {max_visual2tactile}")
-        file.write(f"\nMAP Tactile to Audio: {max_tactile2audio}")
-        file.write(f"\nMAP Audio to Tactile: {max_audio2tactile}")
-        file.write(f"\nMAP Visual to Audio: {max_visual2audio}")
-        file.write(f"\nMAP Audio to Visual: {max_audio2visual}")
+        file.write(f"\nMAP Fused to Query: {max_fused2query}")
+        file.write(f"\nMAP Query to Fused: {max_query2fused}")
 
     # Plot the triplet loss
     plt.figure(figsize=(12,6))
     plt.plot(range(len(triplet_loss_save['triplet_loss'])), triplet_loss_save['triplet_loss'], label='Triplet Loss')
     plt.xlabel('Epoch', fontsize=18)
     plt.ylabel('Triplet Loss', fontsize=18)
-    plt.xticks(fontsize=16)
-    plt.xticks(fontsize=16)
     plt.legend(fontsize=16)
+    plt.xticks(fontsize=16)
+    plt.yticks(fontsize=16)
     plt.title('Triplet Loss Training', fontsize=18)
     plt.savefig(f'{RESULTS_DIRECTORY}/triplet_loss_plot.png')
     plt.close()
