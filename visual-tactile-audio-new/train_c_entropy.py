@@ -133,7 +133,7 @@ def train_with_cross_entropy(epochs_pre = EPOCHS_PRETRAIN, epochs_cross_entropy=
             audio_output, tactile_output, visual_output, attention_out, joint_embeddings = network(audio_input, tactile_input, visual_input)
 
             # Compute the loss
-            loss = criterion(joint_embeddings, targets)
+            loss = criterion(audio_output, targets)
             total_train_loss += loss.item()
 
             # Backward and optimize
