@@ -148,63 +148,34 @@ class TripletLoss(nn.Module):
         return losses.mean()
 
 class TripletDataset(Dataset):
-    def __init__(self, visual_embeddings, tactile_embeddings, audio_embeddings):
-        assert visual_embeddings.keys() == tactile_embeddings.keys() == audio_embeddings.keys()
+    def __init__(self, visual_embeddings, tactile_embeddings):
+        assert visual_embeddings.keys() == tactile_embeddings.keys()
 
         self.labels = list(visual_embeddings.keys())
         self.visual_embeddings = visual_embeddings
         self.tactile_embeddings = tactile_embeddings
-        self.audio_embeddings = audio_embeddings
 
     def __len__(self):
         return len(self.labels)
 
     def __getitem__(self, idx):
-        label = self.labels[idx]
-        
-        # Randomly choose the type of data (modality) to be used as the anchor
-        anchor_source = random.choice(['visual', 'tactile', 'audio'])
-        
-        if anchor_source == 'visual':
-            anchor = random.choice(self.visual_embeddings[label])
-            # Randomly choose the positive pair from 'tactile' or 'audio' embeddings
-            positive_source = random.choice(['tactile', 'audio'])
-            
-            if positive_source == 'tactile':
-                positive = random.choice(self.tactile_embeddings[label])
-            else: # if positive_source is 'audio'
-                positive = random.choice(self.audio_embeddings[label])
-        
-        elif anchor_source == 'tactile':
+        label = self.labels[idx] # get the label of the idx-th sample
+        positive_source = random.choice(['visual', 'tactile'])
+
+        if positive_source == 'visual':
+            positive = random.choice(self.visual_embeddings[label])
             anchor = random.choice(self.tactile_embeddings[label])
-            # Randomly choose the positive pair from 'visual' or 'audio' embeddings
-            positive_source = random.choice(['visual', 'audio'])
-            
-            if positive_source == 'visual':
-                positive = random.choice(self.visual_embeddings[label])
-            else: # if positive_source is 'audio'
-                positive = random.choice(self.audio_embeddings[label])
+        else:
+            positive = random.choice(self.tactile_embeddings[label])
+            anchor = random.choice(self.visual_embeddings[label])
 
-        else: # if anchor_source is 'audio'
-            anchor = random.choice(self.audio_embeddings[label])
-            # Randomly choose the positive pair from 'visual' or 'tactile' embeddings
-            positive_source = random.choice(['visual', 'tactile'])
-            
-            if positive_source == 'visual':
-                positive = random.choice(self.visual_embeddings[label])
-            else: # if positive_source is 'tactile'
-                positive = random.choice(self.tactile_embeddings[label])
-
-        # Select a negative sample
         while True:
             negative_label = random.choice(self.labels)
             if negative_label != label:
                 break
 
-        negative_source = random.choice(['visual', 'tactile', 'audio'])
-        negative = random.choice(self.visual_embeddings[negative_label] if negative_source == 'visual' 
-                                else self.tactile_embeddings[negative_label] if negative_source == 'tactile'
-                                else self.audio_embeddings[negative_label])
+        negative_source = random.choice(['visual', 'tactile'])
+        negative = random.choice(self.visual_embeddings[negative_label] if negative_source == 'visual' else self.tactile_embeddings[negative_label])
 
         return torch.tensor(anchor), torch.tensor(positive), torch.tensor(negative), label
 
