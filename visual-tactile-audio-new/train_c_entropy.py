@@ -5,6 +5,7 @@ import torch
 import torch.nn as nn
 from model import TactileNetwork, CrossSensoryNetwork
 from load_data import get_loader
+import json
 
 EPOCHS_PRETRAIN = 15
 EPOCHS_C_ENTROPY = 50
@@ -34,6 +35,7 @@ def train_with_cross_entropy(epochs_pre = EPOCHS_PRETRAIN, epochs_cross_entropy=
     # Initialize list to store losses
     train_losses = []
     test_losses = []
+    test_losses_audio = []
 
     for epoch in range(epochs_pre):
         tactile_network.train()  # set network to training mode
@@ -159,6 +161,7 @@ def train_with_cross_entropy(epochs_pre = EPOCHS_PRETRAIN, epochs_cross_entropy=
         visual_tactile_fused_test = defaultdict(list)
 
         total_test_loss = 0
+        total_test_loss_audio = 0
         with torch.no_grad():
             for i, (audio_input, tactile_input, visual_input, targets) in enumerate(test_loader):
                 audio_input, tactile_input, visual_input, targets = audio_input.to(device), tactile_input.to(device), visual_input.to(device), targets.to(device)
@@ -169,6 +172,9 @@ def train_with_cross_entropy(epochs_pre = EPOCHS_PRETRAIN, epochs_cross_entropy=
                 # Compute the loss
                 loss = criterion(joint_embeddings, targets)
                 total_test_loss += loss.item()
+                # Compute the loss but on audio
+                audio_loss = criterion(audio_output, targets)  
+                total_test_loss_audio += audio_loss.item() 
 
                 # Save test embeddings for each batch
                 for j in range(audio_output.shape[0]):
@@ -182,18 +188,29 @@ def train_with_cross_entropy(epochs_pre = EPOCHS_PRETRAIN, epochs_cross_entropy=
         test_losses.append(test_loss)  # Append test loss for current epoch
         print(f'Epoch {epoch}, Train Loss: {epoch_train_loss}, Test Loss: {test_loss}')
 
+        audio_test_loss = total_test_loss_audio / len(test_loader) 
+        test_losses_audio.append(audio_test_loss)  # <- Append audio-specific test loss for current epoch
+
+        print(f'Epoch {epoch}, Train Loss: {epoch_train_loss}, Test Loss: {test_loss}, Audio Test Loss: {audio_test_loss}')  # <- Update the print statement
+
+
     # Save the embeddings after all epochs
     print("Training completed. Saving embeddings...")
     np.save('audio_embeddings_train.npy', dict(audio_embeddings_train))
     np.save('tactile_embeddings_train.npy', dict(tactile_embeddings_train))
     np.save('visual_embeddings_train.npy', dict(visual_embeddings_train))
-    np.save('visual_tactile_fused_train.npy', dict(visual_tactile_fused_train))
+    np.save('visual_audio_fused_train.npy', dict(visual_tactile_fused_train))
     np.save('audio_embeddings_test.npy', dict(audio_embeddings_test))
     np.save('tactile_embeddings_test.npy', dict(tactile_embeddings_test))
     np.save('visual_embeddings_test.npy', dict(visual_embeddings_test))
-    np.save('visual_tactile_fused_test.npy', dict(visual_tactile_fused_test))
+    np.save('visual_audio_fused_test.npy', dict(visual_tactile_fused_test))
     # Save the trained model
     torch.save(network.state_dict(), 'audio-visual-tactile-model.pth')
+    
+    # Save train and test losses to a JSON file
+    loss_dict = {'train_losses': train_losses, 'test_losses': test_losses, 'test_audio_losses': test_losses_audio}
+    with open('c_entropy_train_test_losses.json', 'w') as f:
+        json.dump(loss_dict, f)  # <- Save losses as a JSON file
 
     # After training, plot the losses
     plt.figure(figsize=(10, 5))
