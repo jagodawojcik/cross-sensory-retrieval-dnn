@@ -7,9 +7,9 @@ BATCH_SIZE = 5
 EPOCHS_PRETRAIN = 15
 
 def main():
-    # print("---------Starting Cross Entropy Training-----------")
-    # train_with_cross_entropy(EPOCHS_PRETRAIN, EPOCHS_C_ENTROPY, BATCH_SIZE)
-    # print("-----------Cross Entropy Training Completed-----------")
+    print("---------Starting Cross Entropy Training-----------")
+    train_with_cross_entropy(EPOCHS_PRETRAIN, EPOCHS_C_ENTROPY, BATCH_SIZE)
+    print("-----------Cross Entropy Training Completed-----------")
 
     print("----------Starting Triplet Loss Training and Evaluation-----------")
     train_with_triplet_loss()
