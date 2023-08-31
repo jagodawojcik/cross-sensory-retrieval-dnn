@@ -16,7 +16,7 @@ MARGIN = 0.5
 # Set device to gpu if available
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-def train_with_triplet_loss(epochs=EPOCHS, batch_size=1):
+def train_with_triplet_loss(epochs=EPOCHS, batch_size=32):
     print("STARTING TRAINING...")
 
     #Create a directory to save your results
@@ -44,7 +44,7 @@ def train_with_triplet_loss(epochs=EPOCHS, batch_size=1):
 
     # Instantiate your dataset and dataloader
     triplet_dataset = TripletDataset(query_embeddings, fused_embeddings)
-    triplet_dataloader = DataLoader(triplet_dataset, batch_size=1, shuffle=True)
+    triplet_dataloader = DataLoader(triplet_dataset, batch_size, shuffle=True)
 
     # Initialize loss function
     triplet_loss = TripletLoss(margin=MARGIN)
