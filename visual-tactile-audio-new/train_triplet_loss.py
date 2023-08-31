@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 import json
 import os
 # Create a directory to save your results
-RESULTS_DIRECTORY = 'results-audio-query'
+RESULTS_DIRECTORY = 'results-tactile-query'
 # Number of epochs and margin for triplet loss
 EPOCHS = 20001
 MARGIN = 0.5
@@ -37,10 +37,10 @@ def train_with_triplet_loss(epochs=EPOCHS, batch_size=1):
 
 
     # Load your embeddings
-    query_embeddings = np.load("/scratch/users/k21171248/audio_embeddings_train.npy", allow_pickle=True).item()
-    fused_embeddings = np.load("/scratch/users/k21171248/visual_tactile_fused_train.npy", allow_pickle=True).item()
-    query_embeddings_test = np.load("/scratch/users/k21171248/audio_embeddings_test.npy", allow_pickle=True).item()  
-    fused_embeddings_test = np.load("/scratch/users/k21171248/visual_tactile_fused_test.npy", allow_pickle=True).item()  
+    query_embeddings = np.load("/scratch/users/k21171248/tactile_embeddings_train.npy", allow_pickle=True).item()
+    fused_embeddings = np.load("/scratch/users/k21171248/visual_audio_fused_train.npy", allow_pickle=True).item()
+    query_embeddings_test = np.load("/scratch/users/k21171248/tactile_embeddings_test.npy", allow_pickle=True).item()  
+    fused_embeddings_test = np.load("/scratch/users/k21171248/visual_audio_fused_test.npy", allow_pickle=True).item()  
 
     # Instantiate your dataset and dataloader
     triplet_dataset = TripletDataset(query_embeddings, fused_embeddings)
