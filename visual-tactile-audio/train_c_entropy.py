@@ -11,8 +11,16 @@ EPOCHS_PRETRAIN = 15
 EPOCHS_C_ENTROPY = 50
 BATCH_SIZE = 5
 
-def train_with_cross_entropy(epochs_pre = EPOCHS_PRETRAIN, epochs_cross_entropy=EPOCHS_C_ENTROPY, batch_size=BATCH_SIZE):
+def train_with_cross_entropy(dominating_mod, epochs_pre = EPOCHS_PRETRAIN, epochs_cross_entropy=EPOCHS_C_ENTROPY, batch_size=BATCH_SIZE):
 
+    RESULTS_DIRECTORY = os.path.join(f"dom-{dominating_mod}","c-entropy-results")
+
+    #Create a directory to save your results
+    if os.path.exists(RESULTS_DIRECTORY): 
+        raise Exception(f"Directory {RESULTS_DIRECTORY} already exists, please check for existing results.")
+
+    print(f"Directory {RESULTS_DIRECTORY} does not exist, creating...")
+    os.makedirs(RESULTS_DIRECTORY)
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     # Initialize your Tactile Network
@@ -82,9 +90,9 @@ def train_with_cross_entropy(epochs_pre = EPOCHS_PRETRAIN, epochs_cross_entropy=
         test_loss = total_test_loss/len(test_loader)
         test_losses.append(test_loss)
         print(f'Pretraining Epoch {epoch}, Test Loss: {test_loss}')
-    os.system("echo 'finish pretraining")
+    # os.system("echo 'finish pretraining")
     # Save the model
-    torch.save(tactile_network.state_dict(), './tactile_network_pretrain.pth')
+    # torch.save(tactile_network.state_dict(), './tactile_network_pretrain.pth')
 
     # Plot train and test loss
     plt.figure(figsize=(10, 5))
@@ -96,11 +104,11 @@ def train_with_cross_entropy(epochs_pre = EPOCHS_PRETRAIN, epochs_cross_entropy=
     plt.xticks(fontsize=16)
     plt.yticks(fontsize=16)
     plt.legend(fontsize=16)
-    plt.savefig('loss_plot.png')
-    plt.show()
+    # plt.savefig('loss_plot.png')
+    # plt.show()
     # Save the embeddings after pretraining
-    print("Pretraining completed. Saving pretrain tactile embeddings...")
-    np.save('tactile_embeddings_pretrain.npy', dict(tactile_embeddings_pretrain))
+    # print("Pretraining completed. Saving pretrain tactile embeddings...")
+    # np.save('tactile_embeddings_pretrain.npy', dict(tactile_embeddings_pretrain))
     os.system("echo 'finish plotting and saving'")
     network = CrossSensoryNetwork().to(device)
 
@@ -135,7 +143,7 @@ def train_with_cross_entropy(epochs_pre = EPOCHS_PRETRAIN, epochs_cross_entropy=
             audio_output, tactile_output, visual_output, joint_embeddings = network(audio_input, tactile_input, visual_input)
 
             # Compute the loss
-            loss = criterion(tactile_output, targets)
+            loss = criterion(audio_output, targets)
             total_train_loss += loss.item()
 
             # Backward and optimize
@@ -183,15 +191,15 @@ def train_with_cross_entropy(epochs_pre = EPOCHS_PRETRAIN, epochs_cross_entropy=
 
     # Save the embeddings after all epochs
     print("Training completed. Saving embeddings...")
-    np.save('audio_embeddings_kaggle_train.npy', dict(audio_embeddings_train))
-    np.save('tactile_embeddings_kaggle_train.npy', dict(tactile_embeddings_train))
-    np.save('visual_embeddings_kaggle_train.npy', dict(visual_embeddings_train))
-    np.save('audio_embeddings_kaggle_test.npy', dict(audio_embeddings_test))
-    np.save('tactile_embeddings_kaggle_test.npy', dict(tactile_embeddings_test))
-    np.save('visual_embeddings_kaggle_test.npy', dict(visual_embeddings_test))
+    np.save(os.path.join(RESULTS_DIRECTORY, 'audio_embeddings_kaggle_train.npy'), dict(audio_embeddings_train))
+    np.save(os.path.join(RESULTS_DIRECTORY,'tactile_embeddings_kaggle_train.npy'), dict(tactile_embeddings_train))
+    np.save(os.path.join(RESULTS_DIRECTORY,'visual_embeddings_kaggle_train.npy'), dict(visual_embeddings_train))
+    np.save(os.path.join(RESULTS_DIRECTORY,'audio_embeddings_kaggle_test.npy'), dict(audio_embeddings_test))
+    np.save(os.path.join(RESULTS_DIRECTORY,'tactile_embeddings_kaggle_test.npy'), dict(tactile_embeddings_test))
+    np.save(os.path.join(RESULTS_DIRECTORY,'visual_embeddings_kaggle_test.npy'), dict(visual_embeddings_test))
 
     # Save the trained model
-    torch.save(network.state_dict(), 'audio-tactile-visual-model.pth')
+    torch.save(network.state_dict(), os.path.join(RESULTS_DIRECTORY,'audio-tactile-visual-model.pth'))
 
     # After training, plot the losses
     plt.figure(figsize=(10, 5))
@@ -212,11 +220,11 @@ def train_with_cross_entropy(epochs_pre = EPOCHS_PRETRAIN, epochs_cross_entropy=
     # Increase legend font size
     plt.legend(fontsize=16)
 
-    plt.show()
+    # plt.show()
 
     # Save the figure
-    plt.savefig("train_test_loss_plot.png")
+    plt.savefig(os.path.join(RESULTS_DIRECTORY,"train_test_loss_plot.png"))
 
     # Display the plot
-    plt.show()
+    # plt.show()
 
