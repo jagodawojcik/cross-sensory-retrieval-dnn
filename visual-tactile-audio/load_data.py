@@ -7,6 +7,7 @@ from sklearn.preprocessing import LabelEncoder
 import pathlib
 import torch
 import librosa
+import numpy as np
 
 CURRENT_DIRECTORY = pathlib.Path(__file__).parent.resolve()
 DATASET_DIRECTORY = os.path.join(CURRENT_DIRECTORY, "..", "..", "data")
@@ -53,7 +54,9 @@ def fetch_data():
     transform = transforms.Compose([transforms.Resize(TARGET_SIZE),
                                     transforms.ToTensor(),
                                     normalize])
-
+    
+    TARGET_LENGTH = 132300 
+    
     for object_number in OBJECT_NUMBERS:
         folder_dir = f"{DATASET_DIRECTORY}/audio/train/{object_number}"
         for audio_files in os.listdir(folder_dir):
@@ -61,21 +64,33 @@ def fetch_data():
             if (audio_files.endswith(".wav")):
                 # load the audio
                 audio, _ = librosa.load(os.path.join(folder_dir, audio_files), sr=None)
+                audio_len = len(audio)
+
+                if audio_len > TARGET_LENGTH:
+                    audio = audio[:TARGET_LENGTH] # Truncate the excess
+                elif audio_len < TARGET_LENGTH:
+                    pad_size = TARGET_LENGTH - audio_len
+                    audio = np.pad(audio, (0, pad_size), 'constant') # Pad zeros
+
                 audio = torch.tensor(audio).unsqueeze(0)  # Add a dimension for the channel
-                audio_train.append(torch.tensor(audio))
-                label_train.append(object_number)
+                audio_train.append(audio)
+                label_test.append(object_number)
 
     for object_number in OBJECT_NUMBERS:
         folder_dir = f"{DATASET_DIRECTORY}/audio/test/{object_number}"
         for audio_files in os.listdir(folder_dir):
             # check if the file ends with wav
             if (audio_files.endswith(".wav")):
-                # load the audio
                 audio, _ = librosa.load(os.path.join(folder_dir, audio_files), sr=None)
+                audio_len = len(audio)
+                if audio_len > TARGET_LENGTH:
+                    audio = audio[:TARGET_LENGTH] # Truncate the excess
+                elif audio_len < TARGET_LENGTH:
+                    pad_size = TARGET_LENGTH - audio_len
+                    audio = np.pad(audio, (0, pad_size), 'constant') # Pad zeros
                 audio = torch.tensor(audio).unsqueeze(0)  # Add a dimension for the channel
-                audio_test.append(torch.tensor(audio))
+                audio_test.append(audio)
                 label_test.append(object_number)
-
     
     for object_number in OBJECT_NUMBERS:
         folder_dir = f"{DATASET_DIRECTORY}/touch/train/{object_number}"

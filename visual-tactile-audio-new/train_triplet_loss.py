@@ -33,7 +33,7 @@ def train_with_triplet_loss(epochs=EPOCHS, batch_size=32):
         # Write the user's input to the file
         # file.write(user_input)
         # file.write("\n")
-        file.write(f"Query is Vision. Audio+Tactile as Retrieval. Classifiaction with audio. Training with margin {MARGIN} and {EPOCHS} epochs.")
+        file.write(f"Query is Touch. Vision+Audio as Retrieval. Classifiaction with audio. Training with margin {MARGIN} and {epochs} epochs, and batch size {batch_size}.")
 
 
     # Load your embeddings
@@ -71,7 +71,7 @@ def train_with_triplet_loss(epochs=EPOCHS, batch_size=32):
     max_fused2query = 0.0
 
     # Start training loop
-    for epoch in range(EPOCHS):
+    for epoch in range(epochs):
         total_loss = 0
 
         for i, (anchor, positive, negative, label) in enumerate(triplet_dataloader):
