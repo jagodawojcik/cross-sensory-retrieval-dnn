@@ -142,8 +142,15 @@ def train_with_cross_entropy(dominating_mod, epochs_pre = EPOCHS_PRETRAIN, epoch
             # Get outputs and embeddings
             audio_output, tactile_output, visual_output, joint_embeddings = network(audio_input, tactile_input, visual_input)
 
+            if dominating_mod == "audio":
+                modality = audio_output
+            elif dominating_mod == "tactile":
+                modality = tactile_output
+            else:
+                modality = visual_output
+                
             # Compute the loss
-            loss = criterion(audio_output, targets)
+            loss = criterion(modality, targets)
             total_train_loss += loss.item()
 
             # Backward and optimize
