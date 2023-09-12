@@ -12,7 +12,7 @@ import librosa
 import numpy as np
 
 CURRENT_DIRECTORY = pathlib.Path(__file__).parent.resolve()
-DATASET_DIRECTORY = os.path.join(CURRENT_DIRECTORY, "..", "data")
+DATASET_DIRECTORY = os.path.join(CURRENT_DIRECTORY, "..", ".." "data")
 
 OBJECT_NUMBERS = [1, 2, 3, 4, 13, 17, 18, 25, 29, 30, 33, 49, 50, 66, 67, 68, 71, 83, 89, 100]
 
