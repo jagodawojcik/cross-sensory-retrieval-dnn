@@ -6,6 +6,9 @@ import torch.nn as nn
 from model import TactileNetwork, CrossSensoryNetwork
 from load_data import get_loader
 import os
+from logger import logger
+from modality import DominatingModality
+import json
 
 EPOCHS_PRETRAIN = 15
 EPOCHS_C_ENTROPY = 50
@@ -13,7 +16,7 @@ BATCH_SIZE = 5
 
 def train_with_cross_entropy(dominating_mod, epochs_pre = EPOCHS_PRETRAIN, epochs_cross_entropy=EPOCHS_C_ENTROPY, batch_size=BATCH_SIZE):
 
-    RESULTS_DIRECTORY = os.path.join(f"dom-{dominating_mod}","c-entropy-results")
+    RESULTS_DIRECTORY = os.path.join(f"dom-{dominating_mod.value}","c-entropy-results")
 
     #Create a directory to save your results
     if os.path.exists(RESULTS_DIRECTORY): 
@@ -44,7 +47,7 @@ def train_with_cross_entropy(dominating_mod, epochs_pre = EPOCHS_PRETRAIN, epoch
     train_losses = []
     test_losses = []
 
-    os.system("echo 'starting pretraining'")
+    logger.log("echo 'starting pretraining'")
     for epoch in range(epochs_pre):
         tactile_network.train()  # set network to training mode
         total_loss = 0
@@ -90,26 +93,24 @@ def train_with_cross_entropy(dominating_mod, epochs_pre = EPOCHS_PRETRAIN, epoch
         test_loss = total_test_loss/len(test_loader)
         test_losses.append(test_loss)
         print(f'Pretraining Epoch {epoch}, Test Loss: {test_loss}')
-    # os.system("echo 'finish pretraining")
-    # Save the model
-    # torch.save(tactile_network.state_dict(), './tactile_network_pretrain.pth')
-
+    logger.log("echo 'finish pretraining")
+    
     # Plot train and test loss
-    plt.figure(figsize=(10, 5))
-    plt.plot(train_losses, label='Training loss')
-    plt.plot(test_losses, label='Test loss')
-    plt.title('Loss Metrics', fontsize=18)
-    plt.ylabel('Loss', fontsize=18)
-    plt.xlabel('Epochs', fontsize=18)
-    plt.xticks(fontsize=16)
-    plt.yticks(fontsize=16)
-    plt.legend(fontsize=16)
+    # plt.figure(figsize=(10, 5))
+    # plt.plot(train_losses, label='Training loss')
+    # plt.plot(test_losses, label='Test loss')
+    # plt.title('Loss Metrics', fontsize=18)
+    # plt.ylabel('Loss', fontsize=18)
+    # plt.xlabel('Epochs', fontsize=18)
+    # plt.xticks(fontsize=16)
+    # plt.yticks(fontsize=16)
+    # plt.legend(fontsize=16)
     # plt.savefig('loss_plot.png')
     # plt.show()
     # Save the embeddings after pretraining
     # print("Pretraining completed. Saving pretrain tactile embeddings...")
     # np.save('tactile_embeddings_pretrain.npy', dict(tactile_embeddings_pretrain))
-    os.system("echo 'finish plotting and saving'")
+
     network = CrossSensoryNetwork().to(device)
 
     # Load the pretrained weights into the tactile branch
@@ -122,6 +123,7 @@ def train_with_cross_entropy(dominating_mod, epochs_pre = EPOCHS_PRETRAIN, epoch
     # Initialize lists to store losses
     train_losses = []
     test_losses = []
+    dominating_modality_test_losses = []
 
     # Training loop
     for epoch in range(epochs_cross_entropy):
@@ -141,16 +143,19 @@ def train_with_cross_entropy(dominating_mod, epochs_pre = EPOCHS_PRETRAIN, epoch
 
             # Get outputs and embeddings
             audio_output, tactile_output, visual_output, joint_embeddings = network(audio_input, tactile_input, visual_input)
-
-            if dominating_mod == "audio":
-                modality = audio_output
-            elif dominating_mod == "tactile":
-                modality = tactile_output
+            
+            # Select classification modality
+            if dominating_mod == DominatingModality.AUDIO:
+                classification_modality = audio_output
+            elif dominating_mod == DominatingModality.VISUAL: 
+                classification_modality = visual_output
+            elif dominating_mod == DominatingModality.TACTILE:
+                classification_modality = tactile_output
             else:
-                modality = visual_output
-                
-            # Compute the loss
-            loss = criterion(modality, targets)
+                classification_modality = joint_embeddings
+
+            # Compute modality
+            loss = criterion(classification_modality, targets)
             total_train_loss += loss.item()
 
             # Backward and optimize
@@ -174,6 +179,7 @@ def train_with_cross_entropy(dominating_mod, epochs_pre = EPOCHS_PRETRAIN, epoch
         visual_embeddings_test = defaultdict(list)
         
         total_test_loss = 0
+        total_test_loss_dominating_modality = 0
         with torch.no_grad():
             for i, (audio_input, tactile_input, visual_input, targets) in enumerate(test_loader):
                 audio_input, tactile_input, visual_input, targets = audio_input.to(device), tactile_input.to(device), visual_input.to(device), targets.to(device)
@@ -184,7 +190,9 @@ def train_with_cross_entropy(dominating_mod, epochs_pre = EPOCHS_PRETRAIN, epoch
                 # Compute the loss
                 loss = criterion(joint_embeddings, targets)
                 total_test_loss += loss.item()
-
+                # Compute the loss but for dominating modality
+                dominating_mod_loss = criterion(classification_modality, targets)  
+                total_test_loss_dominating_modality += dominating_mod_loss.item() 
                 # Save test embeddings for each batch
                 for j in range(audio_output.shape[0]):
                     label = targets[j].item()
@@ -194,43 +202,49 @@ def train_with_cross_entropy(dominating_mod, epochs_pre = EPOCHS_PRETRAIN, epoch
         
         test_loss = total_test_loss / len(test_loader)
         test_losses.append(test_loss)  # Append test loss for current epoch
-        print(f'Epoch {epoch}, Train Loss: {epoch_train_loss}, Test Loss: {test_loss}')
+        dominating_modality_test_loss = total_test_loss_dominating_modality / len(test_loader) 
+        dominating_modality_test_losses.append(dominating_modality_test_loss)  # dominating modality-specific loss
+        logger.log(f'Epoch {epoch}, Train Loss: {epoch_train_loss}, Validation Loss (joint embedding): {test_loss}, {dominating_mod.value} Validation Loss (dominating modality): {dominating_modality_test_loss}')
 
     # Save the embeddings after all epochs
     print("Training completed. Saving embeddings...")
-    np.save(os.path.join(RESULTS_DIRECTORY, 'audio_embeddings_kaggle_train.npy'), dict(audio_embeddings_train))
-    np.save(os.path.join(RESULTS_DIRECTORY,'tactile_embeddings_kaggle_train.npy'), dict(tactile_embeddings_train))
-    np.save(os.path.join(RESULTS_DIRECTORY,'visual_embeddings_kaggle_train.npy'), dict(visual_embeddings_train))
-    np.save(os.path.join(RESULTS_DIRECTORY,'audio_embeddings_kaggle_test.npy'), dict(audio_embeddings_test))
-    np.save(os.path.join(RESULTS_DIRECTORY,'tactile_embeddings_kaggle_test.npy'), dict(tactile_embeddings_test))
-    np.save(os.path.join(RESULTS_DIRECTORY,'visual_embeddings_kaggle_test.npy'), dict(visual_embeddings_test))
+    np.save(os.path.join(RESULTS_DIRECTORY, 'audio_embeddings_train.npy'), dict(audio_embeddings_train))
+    np.save(os.path.join(RESULTS_DIRECTORY,'tactile_embeddings_train.npy'), dict(tactile_embeddings_train))
+    np.save(os.path.join(RESULTS_DIRECTORY,'visual_embeddings_train.npy'), dict(visual_embeddings_train))
+    np.save(os.path.join(RESULTS_DIRECTORY,'audio_embeddings_test.npy'), dict(audio_embeddings_test))
+    np.save(os.path.join(RESULTS_DIRECTORY,'tactile_embeddings_test.npy'), dict(tactile_embeddings_test))
+    np.save(os.path.join(RESULTS_DIRECTORY,'visual_embeddings_test.npy'), dict(visual_embeddings_test))
 
     # Save the trained model
-    torch.save(network.state_dict(), os.path.join(RESULTS_DIRECTORY,'audio-tactile-visual-model.pth'))
+    torch.save(network.state_dict(), os.path.join(RESULTS_DIRECTORY,'c-entropy-model.pth'))
+    # Save train and test losses to a JSON file
+    loss_dict = {'train_losses': train_losses, 'test_losses': test_losses, f'test_{dominating_mod.value}_losses': dominating_modality_test_losses}
+    with open(f"{RESULTS_DIRECTORY}/c_entropy_train_test_losses.json", 'w') as f:
+        json.dump(loss_dict, f)  # <- Save losses as a JSON file
 
-    # After training, plot the losses
-    plt.figure(figsize=(10, 5))
-    plt.plot(train_losses, label='Train Loss')
-    plt.plot(test_losses, label='Test Loss')
+    # # After training, plot the losses
+    # plt.figure(figsize=(10, 5))
+    # plt.plot(train_losses, label='Train Loss')
+    # plt.plot(test_losses, label='Test Loss')
 
-    # Increase title font size
-    plt.title('Train and Test Loss over time', fontsize=18)
+    # # Increase title font size
+    # plt.title('Train and Test Loss over time', fontsize=18)
 
-    # Increase x and y axis label font size
-    plt.xlabel('Epochs', fontsize=18)
-    plt.ylabel('Loss', fontsize=18)
+    # # Increase x and y axis label font size
+    # plt.xlabel('Epochs', fontsize=18)
+    # plt.ylabel('Loss', fontsize=18)
 
-    # Increase tick font size
-    plt.xticks(fontsize=16)
-    plt.yticks(fontsize=16)
+    # # Increase tick font size
+    # plt.xticks(fontsize=16)
+    # plt.yticks(fontsize=16)
 
-    # Increase legend font size
-    plt.legend(fontsize=16)
+    # # Increase legend font size
+    # plt.legend(fontsize=16)
 
-    # plt.show()
+    # # plt.show()
 
-    # Save the figure
-    plt.savefig(os.path.join(RESULTS_DIRECTORY,"train_test_loss_plot.png"))
+    # # Save the figure
+    # plt.savefig(os.path.join(RESULTS_DIRECTORY,"train_test_loss_plot.png"))
 
     # Display the plot
     # plt.show()

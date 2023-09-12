@@ -7,21 +7,21 @@ import numpy as np
 import matplotlib.pyplot as plt
 import json
 import os
+import pathlib
 
 
 # Create a directory to save your results
-RESULTS_DIRECTORY = 'results'
 # Number of epochs and margin for triplet loss
-EPOCHS = 30001
+EPOCHS = 20001
 MARGIN = 0.5
 
 
 # Set device to gpu if available
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-def train_with_triplet_loss(epochs=EPOCHS, batch_size=1):
-    print("STARTING TRAINING...")
+def train_with_triplet_loss(dominating_mod, epochs=EPOCHS, batch_size=1):
 
+    RESULTS_DIRECTORY = os.path.join(f"dom-{dominating_mod.value}","triplet-loss")
     #Create a directory to save your results
     if os.path.exists(RESULTS_DIRECTORY): 
         raise Exception(f"Directory {RESULTS_DIRECTORY} already exists, please delete it before running this script again.")
@@ -29,22 +29,16 @@ def train_with_triplet_loss(epochs=EPOCHS, batch_size=1):
     print(f"Directory {RESULTS_DIRECTORY} does not exist, creating...")
     os.makedirs(RESULTS_DIRECTORY)
 
-    # Ask the user for input
-    user_input = input("Please enter any identification information about this training: ")
-    # Open the file in write mode ('w')
-    with open(f"{RESULTS_DIRECTORY}/information.txt", "w") as file:
-        # Write the user's input to the file
-        file.write(user_input)
-        file.write("\n")
-        file.write(f"Training with margin {MARGIN} and {EPOCHS} epochs.")
+    CURRENT_DIRECTORY = pathlib.Path(__file__).parent.resolve()
+    EMBEDDINGS_DIRECTORY = os.path.join(CURRENT_DIRECTORY, ".." ,f"dom-{dominating_mod.value}", "c-entropy-results")
 
     # Load your embeddings
-    visual_embeddings = np.load("visual_embeddings_kaggle_train.npy", allow_pickle=True).item()
-    tactile_embeddings = np.load("tactile_embeddings_kaggle_train.npy", allow_pickle=True).item()
-    audio_embeddings = np.load("audio_embeddings_kaggle_train.npy", allow_pickle=True).item()
-    visual_embeddings_test = np.load("visual_embeddings_kaggle_test.npy", allow_pickle=True).item()  
-    tactile_embeddings_test = np.load("tactile_embeddings_kaggle_test.npy", allow_pickle=True).item()  
-    audio_embeddings_test = np.load("audio_embeddings_kaggle_test.npy", allow_pickle=True).item() 
+    visual_embeddings = np.load(os.path.join(EMBEDDINGS_DIRECTORY, "visual_embeddings_train.npy"), allow_pickle=True).item()
+    tactile_embeddings = np.load(os.path.join(EMBEDDINGS_DIRECTORY, "tactile_embeddings_train.npy"), allow_pickle=True).item()
+    audio_embeddings = np.load(os.path.join(EMBEDDINGS_DIRECTORY, "audio_embeddings_train.npy"), allow_pickle=True).item()
+    visual_embeddings_test = np.load(os.path.join(EMBEDDINGS_DIRECTORY, "visual_embeddings_test.npy"), allow_pickle=True).item() 
+    tactile_embeddings_test = np.load(os.path.join(EMBEDDINGS_DIRECTORY, "tactile_embeddings_test.npy"), allow_pickle=True).item()
+    audio_embeddings_test = np.load(os.path.join(EMBEDDINGS_DIRECTORY, "audio_embeddings_test.npy"), allow_pickle=True).item()
     
     # Instantiate your dataset and dataloader
     triplet_dataset = TripletDataset(visual_embeddings, tactile_embeddings, audio_embeddings)
@@ -81,6 +75,8 @@ def train_with_triplet_loss(epochs=EPOCHS, batch_size=1):
     max_audio2visual = 0.0
     max_tactile2audio = 0.0
     max_audio2tactile = 0.0
+    max_MAP_total = 0.0
+    result_epoch = 0
 
     # Start training loop
     for epoch in range(EPOCHS):
@@ -114,7 +110,7 @@ def train_with_triplet_loss(epochs=EPOCHS, batch_size=1):
 
         avg_loss = total_loss / len(triplet_dataloader)
         triplet_loss_save['triplet_loss'].append(avg_loss)
-        print('Epoch [{}/{}], Loss: {:.4f}'.format(epoch+1, EPOCHS, avg_loss))
+        # print('Epoch [{}/{}], Loss: {:.4f}'.format(epoch+1, EPOCHS, avg_loss))
 
         if epoch % 100 == 0:
             new_visual_embeddings = {k: model(torch.tensor(v, device=device)).detach().cpu().numpy() for k, v in visual_embeddings.items()}
@@ -131,56 +127,70 @@ def train_with_triplet_loss(epochs=EPOCHS, batch_size=1):
             MAP_visual2audio, MAP_audio2visual = evaluate_audio_vis(new_audio_embeddings_test, new_visual_embeddings_test, new_audio_embeddings, new_visual_embeddings)
             MAP_tactile2audio, MAP_audio2tactile = evaluate_audio_tact(new_audio_embeddings_test, new_tactile_embeddings_test, new_audio_embeddings, new_tactile_embeddings)
 
-            if MAP_tactile2visual > max_tactile2visual:
+            if (MAP_tactile2visual + MAP_visual2tactile + MAP_visual2audio + MAP_audio2visual + MAP_tactile2audio + MAP_audio2tactile) > max_MAP_total:
                 max_tactile2visual = MAP_tactile2visual
-                best_map_pairs['MAP_pairs'].append((epoch, MAP_tactile2visual, MAP_visual2tactile))
-                np.save('{}/trained_visual_embeddings_{}.npy'.format(RESULTS_DIRECTORY, epoch), new_visual_embeddings)
-                np.save('{}/trained_tactile_embeddings_{}.npy'.format(RESULTS_DIRECTORY, epoch), new_tactile_embeddings)
-                torch.save(model.state_dict(), f"{RESULTS_DIRECTORY}/model_best_tactile2visual.pth")
-                
-            if MAP_visual2tactile > max_visual2tactile:
                 max_visual2tactile = MAP_visual2tactile
-                best_map_pairs['MAP_pairs'].append((epoch, MAP_tactile2visual, MAP_visual2tactile))
-                np.save('{}/trained_visual_embeddings_{}.npy'.format(RESULTS_DIRECTORY, epoch), new_visual_embeddings)
-                np.save('{}/trained_tactile_embeddings_{}.npy'.format(RESULTS_DIRECTORY, epoch), new_tactile_embeddings)
-                torch.save(model.state_dict(), f"{RESULTS_DIRECTORY}/model_best_visual2tactile.pth")
+                max_audio2tactile = MAP_audio2tactile
+                max_tactile2audio = MAP_tactile2audio
+                max_audio2visual = MAP_audio2visual
+                max_visual2audio = MAP_visual2audio
+
+                best_map_pairs['MAP_pairs'].append((epoch, MAP_tactile2visual, MAP_tactile2audio, MAP_audio2tactile, MAP_tactile2audio, MAP_visual2audio, MAP_audio2visual))
+                np.save('{}/triplet_trained_retrieval_audio_embeddings.npy'.format(RESULTS_DIRECTORY), new_audio_embeddings)
+                np.save('{}/triplet_trained_retrieval_visual_embeddings'.format(RESULTS_DIRECTORY), new_visual_embeddings)
+                np.save('{}/triplet_trained_retrieval_tactile_embeddings'.format(RESULTS_DIRECTORY), new_tactile_embeddings)
+                torch.save(model.state_dict(), f"{RESULTS_DIRECTORY}/triplet_model.pth")
+                result_epoch = epoch
+            # if MAP_tactile2visual > max_tactile2visual:
+            #     max_tactile2visual = MAP_tactile2visual
+            #     best_map_pairs['MAP_pairs'].append((epoch, MAP_tactile2visual, MAP_visual2tactile))
+            #     np.save('{}/trained_visual_embeddings_{}.npy'.format(RESULTS_DIRECTORY, epoch), new_visual_embeddings)
+            #     np.save('{}/trained_tactile_embeddings_{}.npy'.format(RESULTS_DIRECTORY, epoch), new_tactile_embeddings)
+            #     torch.save(model.state_dict(), f"{RESULTS_DIRECTORY}/model_best_tactile2visual.pth")
+                
+            # if MAP_visual2tactile > max_visual2tactile:
+            #     max_visual2tactile = MAP_visual2tactile
+            #     best_map_pairs['MAP_pairs'].append((epoch, MAP_tactile2visual, MAP_visual2tactile))
+            #     np.save('{}/trained_visual_embeddings_{}.npy'.format(RESULTS_DIRECTORY, epoch), new_visual_embeddings)
+            #     np.save('{}/trained_tactile_embeddings_{}.npy'.format(RESULTS_DIRECTORY, epoch), new_tactile_embeddings)
+            #     torch.save(model.state_dict(), f"{RESULTS_DIRECTORY}/model_best_visual2tactile.pth")
 
             # Add the results to the map
             results_map['tactile2visual'].append(MAP_tactile2visual)
             results_map['visual2tactile'].append(MAP_visual2tactile)
 
 
-            if MAP_visual2audio > max_visual2audio:
-                max_visual2audio = MAP_visual2audio
-                best_map_pairs['MAP_pairs'].append((epoch, MAP_visual2audio, MAP_audio2visual))
-                np.save('{}/trained_audio_embeddings_{}.npy'.format(RESULTS_DIRECTORY, epoch), new_audio_embeddings)
-                np.save('{}/trained_visual_embeddings_{}.npy'.format(RESULTS_DIRECTORY, epoch), new_visual_embeddings)
-                torch.save(model.state_dict(), f"{RESULTS_DIRECTORY}/model_best_visual2audio.pth")
+            # if MAP_visual2audio > max_visual2audio:
+            #     max_visual2audio = MAP_visual2audio
+            #     best_map_pairs['MAP_pairs'].append((epoch, MAP_visual2audio, MAP_audio2visual))
+            #     np.save('{}/trained_audio_embeddings_{}.npy'.format(RESULTS_DIRECTORY, epoch), new_audio_embeddings)
+            #     np.save('{}/trained_visual_embeddings_{}.npy'.format(RESULTS_DIRECTORY, epoch), new_visual_embeddings)
+            #     torch.save(model.state_dict(), f"{RESULTS_DIRECTORY}/model_best_visual2audio.pth")
                 
-            if MAP_audio2visual > max_audio2visual:
-                max_audio2visual = MAP_audio2visual
-                best_map_pairs['MAP_pairs'].append((epoch, MAP_visual2audio, MAP_audio2visual))
-                np.save('{}/trained_audio_embeddings_{}.npy'.format(RESULTS_DIRECTORY, epoch), new_audio_embeddings)
-                np.save('{}/trained_visual_embeddings_{}.npy'.format(RESULTS_DIRECTORY, epoch), new_visual_embeddings)
-                torch.save(model.state_dict(), f"{RESULTS_DIRECTORY}/model_best_audio2visual.pth")
+            # if MAP_audio2visual > max_audio2visual:
+            #     max_audio2visual = MAP_audio2visual
+            #     best_map_pairs['MAP_pairs'].append((epoch, MAP_visual2audio, MAP_audio2visual))
+            #     np.save('{}/trained_audio_embeddings_{}.npy'.format(RESULTS_DIRECTORY, epoch), new_audio_embeddings)
+            #     np.save('{}/trained_visual_embeddings_{}.npy'.format(RESULTS_DIRECTORY, epoch), new_visual_embeddings)
+            #     torch.save(model.state_dict(), f"{RESULTS_DIRECTORY}/model_best_audio2visual.pth")
 
             # Add the results to the map
             results_map['visual2audio'].append(MAP_visual2audio)
             results_map['audio2visual'].append(MAP_audio2visual)
 
-            if MAP_tactile2audio > max_tactile2audio:
-                max_tactile2audio = MAP_tactile2audio
-                best_map_pairs['MAP_pairs'].append((epoch, MAP_tactile2audio, MAP_audio2tactile))
-                np.save('{}/trained_audio_embeddings_{}.npy'.format(RESULTS_DIRECTORY, epoch), new_audio_embeddings)
-                np.save('{}/trained_tactile_embeddings_{}.npy'.format(RESULTS_DIRECTORY, epoch), new_tactile_embeddings)
-                torch.save(model.state_dict(), f"{RESULTS_DIRECTORY}/model_best_tactile2audio.pth")
+            # if MAP_tactile2audio > max_tactile2audio:
+            #     max_tactile2audio = MAP_tactile2audio
+            #     best_map_pairs['MAP_pairs'].append((epoch, MAP_tactile2audio, MAP_audio2tactile))
+            #     np.save('{}/trained_audio_embeddings_{}.npy'.format(RESULTS_DIRECTORY, epoch), new_audio_embeddings)
+            #     np.save('{}/trained_tactile_embeddings_{}.npy'.format(RESULTS_DIRECTORY, epoch), new_tactile_embeddings)
+            #     torch.save(model.state_dict(), f"{RESULTS_DIRECTORY}/model_best_tactile2audio.pth")
                 
-            if MAP_audio2tactile > max_audio2tactile:
-                max_audio2tactile = MAP_audio2tactile
-                best_map_pairs['MAP_pairs'].append((epoch, MAP_tactile2audio, MAP_audio2tactile))
-                np.save('{}/trained_audio_embeddings_{}.npy'.format(RESULTS_DIRECTORY, epoch), new_audio_embeddings)
-                np.save('{}/trained_tactile_embeddings_{}.npy'.format(RESULTS_DIRECTORY, epoch), new_tactile_embeddings)
-                torch.save(model.state_dict(), f"{RESULTS_DIRECTORY}/model_best_audio2tactile.pth")
+            # if MAP_audio2tactile > max_audio2tactile:
+            #     max_audio2tactile = MAP_audio2tactile
+            #     best_map_pairs['MAP_pairs'].append((epoch, MAP_tactile2audio, MAP_audio2tactile))
+            #     np.save('{}/trained_audio_embeddings_{}.npy'.format(RESULTS_DIRECTORY, epoch), new_audio_embeddings)
+            #     np.save('{}/trained_tactile_embeddings_{}.npy'.format(RESULTS_DIRECTORY, epoch), new_tactile_embeddings)
+            #     torch.save(model.state_dict(), f"{RESULTS_DIRECTORY}/model_best_audio2tactile.pth")
 
             # Add the results to the map
             results_map['tactile2audio'].append(MAP_tactile2audio)
@@ -211,15 +221,7 @@ def train_with_triplet_loss(epochs=EPOCHS, batch_size=1):
     plt.savefig('{}/map_plot_{}.png'.format(RESULTS_DIRECTORY, epoch))
     plt.close()
 
-    #Print best results and save them to an information file
-    print('MAP Tactile to Visual: {}'.format(max_tactile2visual))
-    print('MAP Visual to Tactile: {}'.format(max_visual2tactile))
-    print('MAP Tactile to Audio: {}'.format(max_tactile2audio))
-    print('MAP Audio to Tactile: {}'.format(max_audio2tactile))
-    print('MAP Visual to Audio: {}'.format(max_visual2audio))
-    print('MAP Audio to Visual: {}'.format(max_audio2visual))
-
-    with open(f"{RESULTS_DIRECTORY}/information.txt", "a") as file:
+    with open(f"{RESULTS_DIRECTORY}/MAP_validation_results.txt", "w") as file:
         # Write the user's input to the file
         file.write(f"\nMAP Tactile to Visual: {max_tactile2visual}")
         file.write(f"\nMAP Visual to Tactile: {max_visual2tactile}")
@@ -227,6 +229,7 @@ def train_with_triplet_loss(epochs=EPOCHS, batch_size=1):
         file.write(f"\nMAP Audio to Tactile: {max_audio2tactile}")
         file.write(f"\nMAP Visual to Audio: {max_visual2audio}")
         file.write(f"\nMAP Audio to Visual: {max_audio2visual}")
+        file.write(f"\n Saved at Epoch: {result_epoch}")
 
     # Plot the triplet loss
     plt.figure(figsize=(12,6))
