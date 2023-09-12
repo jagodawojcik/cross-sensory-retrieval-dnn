@@ -34,7 +34,7 @@ def train_with_cross_entropy(dominating_mod, epochs_pre = EPOCHS_PRETRAIN, epoch
     pretrain_criterion = nn.CrossEntropyLoss()
 
     # Get the dataloaders and parameters
-    dataloader, input_data_par = get_loader(batch_size)
+    dataloader= get_loader(batch_size)
 
     # Get the train and test loaders
     train_loader = dataloader['train']
