@@ -42,7 +42,7 @@ def train_with_triplet_loss(dominating_mod, epochs=EPOCHS, batch_size=1):
     
     # Instantiate your dataset and dataloader
     triplet_dataset = TripletDataset(visual_embeddings, tactile_embeddings, audio_embeddings)
-    triplet_dataloader = DataLoader(triplet_dataset, batch_size=1, shuffle=True)
+    triplet_dataloader = DataLoader(triplet_dataset, batch_size, shuffle=True)
 
     # Initialize loss function
     triplet_loss = TripletLoss(margin=MARGIN)
@@ -79,7 +79,7 @@ def train_with_triplet_loss(dominating_mod, epochs=EPOCHS, batch_size=1):
     result_epoch = 0
 
     # Start training loop
-    for epoch in range(EPOCHS):
+    for epoch in range(epochs):
         total_loss = 0
 
         for i, (anchor, positive, negative, label) in enumerate(triplet_dataloader):

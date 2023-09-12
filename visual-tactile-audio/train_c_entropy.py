@@ -14,7 +14,7 @@ EPOCHS_PRETRAIN = 15
 EPOCHS_C_ENTROPY = 50
 BATCH_SIZE = 5
 
-def train_with_cross_entropy(dominating_mod, epochs_pre = EPOCHS_PRETRAIN, epochs_cross_entropy=EPOCHS_C_ENTROPY, batch_size=BATCH_SIZE):
+def train_with_cross_entropy(dominating_mod, epochs_pre = EPOCHS_PRETRAIN, epochs_c_entropy=EPOCHS_C_ENTROPY, batch_size=BATCH_SIZE):
 
     RESULTS_DIRECTORY = os.path.join(f"dom-{dominating_mod.value}","c-entropy-results")
 
@@ -126,7 +126,7 @@ def train_with_cross_entropy(dominating_mod, epochs_pre = EPOCHS_PRETRAIN, epoch
     dominating_modality_test_losses = []
 
     # Training loop
-    for epoch in range(epochs_cross_entropy):
+    for epoch in range(epochs_c_entropy):
         network.train()  # set network to training mode
         total_train_loss = 0
 
