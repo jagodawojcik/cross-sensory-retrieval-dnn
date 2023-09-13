@@ -52,7 +52,7 @@ def test_set_performance_evaluate(dominating_modality):
             audio_input, tactile_input, visual_input, targets = audio_input.to(device), tactile_input.to(device), visual_input.to(device), targets.to(device)
 
             # Get outputs and embeddings
-            audio_output, tactile_output, visual_output, attention_out, _ = model(audio_input, tactile_input, visual_input)
+            audio_output, tactile_output, visual_output, _ = model(audio_input, tactile_input, visual_input)
 
             for j in range(audio_output.shape[0]):
                 label = targets[j].item()
