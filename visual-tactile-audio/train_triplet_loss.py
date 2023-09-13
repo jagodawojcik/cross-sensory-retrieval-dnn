@@ -19,7 +19,7 @@ MARGIN = 0.5
 # Set device to gpu if available
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-def train_with_triplet_loss(dominating_mod, epochs=EPOCHS, batch_size=1):
+def train_with_triplet_loss(dominating_mod, epochs=EPOCHS, batch_size=1, margin=MARGIN):
 
     RESULTS_DIRECTORY = os.path.join(f"dom-{dominating_mod.value}","triplet-loss")
     #Create a directory to save your results

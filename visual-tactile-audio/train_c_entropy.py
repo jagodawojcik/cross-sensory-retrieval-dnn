@@ -77,7 +77,7 @@ def train_with_cross_entropy(dominating_mod, epochs_pre = EPOCHS_PRETRAIN, epoch
         # End of epoch
         train_loss = total_loss/len(train_loader)
         train_losses.append(train_loss)
-        print(f'Pretraining Epoch {epoch}, Train Loss: {train_loss}')
+        logger.log(f'Pretraining Epoch {epoch}, Train Loss: {train_loss}')
 
         # Evaluation loop on test set
         tactile_network.eval()  # set network to evaluation mode
@@ -92,7 +92,7 @@ def train_with_cross_entropy(dominating_mod, epochs_pre = EPOCHS_PRETRAIN, epoch
 
         test_loss = total_test_loss/len(test_loader)
         test_losses.append(test_loss)
-        print(f'Pretraining Epoch {epoch}, Test Loss: {test_loss}')
+        logger.log(f'Pretraining Epoch {epoch}, Test Loss: {test_loss}')
     logger.log("echo 'finish pretraining")
     
     # Plot train and test loss
