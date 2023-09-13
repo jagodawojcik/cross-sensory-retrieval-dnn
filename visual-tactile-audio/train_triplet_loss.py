@@ -30,7 +30,7 @@ def train_with_triplet_loss(dominating_mod, epochs=EPOCHS, batch_size=1, margin=
     os.makedirs(RESULTS_DIRECTORY)
 
     CURRENT_DIRECTORY = pathlib.Path(__file__).parent.resolve()
-    EMBEDDINGS_DIRECTORY = os.path.join(CURRENT_DIRECTORY, ".." ,f"dom-{dominating_mod.value}", "c-entropy-results")
+    EMBEDDINGS_DIRECTORY = os.path.join(CURRENT_DIRECTORY, "..", ".." ,f"dom-{dominating_mod.value}", "c-entropy-results")
 
     # Load your embeddings
     visual_embeddings = np.load(os.path.join(EMBEDDINGS_DIRECTORY, "visual_embeddings_train.npy"), allow_pickle=True).item()
